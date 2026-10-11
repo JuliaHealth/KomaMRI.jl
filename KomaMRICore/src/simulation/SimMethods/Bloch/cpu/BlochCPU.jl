@@ -93,10 +93,9 @@ function run_spin_precession!(
     ΔBz = prealloc.ΔBz
     #Initialize
     fill!(ϕ, zero(T))
-    block_time = within_compile() ? promote_to_traced(zero(T)) : zero(T)
-    sample = 1
-    sig_output = sig
-    sig = within_compile() && !isempty(sig) ? copy(sig) : sig
+    block_time = zero(seq.Δt[1])
+    sample = _sample_counter(sig)
+    all_adc = size(sig, 1) == length(seq.Δt)
     x, y, z = spin_coordinates!(
         prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[1],
     )
@@ -113,20 +112,11 @@ function run_spin_precession!(
         @. ϕ += (Bz_old + Bz_new) * T(-π * γ) * seq.Δt[i]
         block_time += seq.Δt[i]
         #Acquired Signal
-        if within_compile() ? !isempty(sig) : seq.ADC[i + 1]
-            #Update signal
-            @. Mxy = exp(-block_time / p.T2) * M.xy * cis(ϕ)
-            #Reset Spin-State (Magnetization). Only for FlowPath
-            outflow_spin_reset!(Mxy, seq.t[i + 1], p.motion)
-            update_sensitivities!(prealloc.sens, sys.receiver, (x, y, z), p.motion)
-            if within_compile()
-                signal = similar(sig, size(sig, 2))
-                acquire_signal!(signal, Mxy, prealloc.sens, (x, y, z))
-                sig[i, :] = signal
-            else
-                acquire_signal!(@view(sig[sample, :]), Mxy, prealloc.sens, (x, y, z))
-                sample += 1
-            end
+        if !isempty(sig)
+            adc = all_adc || seq.ADC[i + 1]
+            acquire_signal!(sig, sample, adc, M, sys, prealloc, p, seq, i,
+                block_time, (x, y, z))
+            sample += adc
         end
         #Update simulation state
         Bz_old .= Bz_new
@@ -136,7 +126,6 @@ function run_spin_precession!(
     @. M.z = M.z * exp(-block_time / p.T1) + p.ρ * (T(1) - exp(-block_time / p.T1))
     #Reset Spin-State (Magnetization). Only for FlowPath
     outflow_spin_reset!(M,  seq.t', p.motion; replace_by=p.ρ)
-    within_compile() && !isempty(sig) && copyto!(sig_output, sig)
     return nothing
 end
 
@@ -168,10 +157,11 @@ function run_spin_excitation!(
     Maux_xy = prealloc.M.xy
     Maux_z = prealloc.M.z
     #Initialize
-    sample = 1
+    sample = _sample_counter(sig)
+    all_adc = size(sig, 1) == length(seq.Δt)
     # Rotating frame -> RF frame
     ψ_start = seq.ψ[1]
-    if !iszero(ψ_start)
+    @trace track_numbers=false if !iszero(ψ_start)
         @. M.xy = M.xy * cis(-ψ_start)
     end
     #Simulation
@@ -197,18 +187,15 @@ function run_spin_excitation!(
         #Reset Spin-State (Magnetization). Only for FlowPath
         outflow_spin_reset_at!(M, seq.t, i + 1, p.motion; replace_by=p.ρ)
         #Acquire signal
-        if !isempty(sig) && seq.ADC[i + 1] # ADC at the end of the time step
-            coords = spin_coordinates!(
-                prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i + 1],
-            )
-            update_sensitivities!(prealloc.sens, sys.receiver, coords, p.motion)
-            acquire_signal!(@view(sig[sample, :]), M.xy, prealloc.sens, coords)
-            sample += 1
+        if !isempty(sig)
+            adc = all_adc || seq.ADC[i + 1] # ADC at the end of the time step
+            acquire_signal!(sig, sample, adc, M, sys, prealloc, p, seq, i)
+            sample += adc
         end
     end
     # RF frame -> Rotating frame
     ψ_end = seq.ψ[end]
-    if !iszero(ψ_end)
+    @trace track_numbers=false if !iszero(ψ_end)
         @. M.xy = M.xy * cis(ψ_end)
     end
     return nothing

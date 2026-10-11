@@ -213,26 +213,23 @@ function run_sim_time_iter!(
         sim_method, backend, obj, Xt, max_block_length, max_adc_samples,
         prealloc_groupsize, sys,
     )
+    seqd = _prepare_sequence(obj, seqd)
 
     for (block, p) in enumerate(parts)
-        seqd_block = within_compile() ? seqd[p] : @view seqd[p]
         # Params
-        Nadc = sum(seqd_block.ADC[2:end]) # if ADC[1] == true, that is handled by the previous block
+        Nadc = count(@view seqd.ADC[(first(p) + 1):last(p)]) # ADC at the shared boundary belongs to the previous block
         acq_samples = samples:(samples + Nadc - 1)
-        dims = [Colon() for i in 1:(ndims(sig) - 1)] # :,:,:,... Ndim times
         # Simulation wrappers
         if excitation_bool[block]
-            run_spin_excitation_parallel!(
-                obj, seqd_block, @view(sig[acq_samples, dims...]), Xt, sys,
-                sim_method, excitation_groupsize, backend, prealloc_result; Nthreads
-            )
+            _run_simulation_block!(run_spin_excitation_parallel!, obj, seqd, p,
+                sig, acq_samples, Xt, sys, sim_method, excitation_groupsize,
+                backend, prealloc_result; Nthreads)
             rfs += 1
 
         else
-            run_spin_precession_parallel!(
-                obj, seqd_block, @view(sig[acq_samples, dims...]), Xt, sys,
-                sim_method, precession_groupsize, backend, prealloc_result; Nthreads
-            )
+            _run_simulation_block!(run_spin_precession_parallel!, obj, seqd, p,
+                sig, acq_samples, Xt, sys, sim_method, precession_groupsize,
+                backend, prealloc_result; Nthreads)
         end
         KA.synchronize(backend)
         samples += Nadc
@@ -247,6 +244,15 @@ function run_sim_time_iter!(
 
     return nothing
 end
+
+@inline function _run_simulation_block!(runner, obj, seqd, p, sig, samples, Xt,
+    sys, method, groupsize, backend, preallocated; Nthreads)
+    dims = ntuple(_ -> Colon(), ndims(sig) - 1)
+    runner(obj, @view(seqd[p]), @view(sig[samples, dims...]), Xt,
+        sys, method, groupsize, backend, preallocated; Nthreads)
+end
+
+_prepare_sequence(obj, seqd) = seqd
 
 """Split if simulation block is too long (more than max_block_length)"""
 function split_range(r, max_block_length)
@@ -280,8 +286,7 @@ function get_sim_ranges(seqd::DiscreteSequence; max_block_length=Inf, max_rf_blo
 
     starts = Int[firstindex(seqd.Δt)]
     for i in (firstindex(seqd.excitation_bool) + 1):lastindex(seqd.excitation_bool)
-        if seqd.excitation_bool[i] != seqd.excitation_bool[i - 1] ||
-           (within_compile() && !seqd.excitation_bool[i] && seqd.ADC[i + 1] != seqd.ADC[i])
+        if seqd.excitation_bool[i] != seqd.excitation_bool[i - 1]
             push!(starts, i)
         end
     end
