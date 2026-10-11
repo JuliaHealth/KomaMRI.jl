@@ -105,6 +105,7 @@ prealloc(
 ) = DefaultPrealloc()
 
 include("BlochSimple/BlochSimple.jl")
+include("BlochDict/BlochDict.jl")
 include("Bloch/cpu/BlochCPU.jl")
 include("BlochMagnus/cpu/BlochMagnusCPU.jl")
 include("Bloch/gpu/BlochGPU.jl")
@@ -112,4 +113,3 @@ include("BlochMagnus/gpu/MagnusMidKernel.jl")
 include("BlochMagnus/gpu/MagnusQuadKernel.jl")
 include("BlochMagnus/gpu/MagnusGLKernel.jl")
 include("BlochMagnus/gpu/MagnusBGLKernel.jl")
-include("BlochDict/BlochDict.jl")

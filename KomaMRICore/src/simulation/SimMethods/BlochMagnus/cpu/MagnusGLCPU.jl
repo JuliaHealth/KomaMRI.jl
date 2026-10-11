@@ -13,21 +13,18 @@ function run_spin_excitation!(
     B_to_ω = T(-2π * γ)
     ΔBz = prealloc.ΔBz
     (; ωxy_minus, ωz_minus, ωxy_plus, ωz_plus, θxy, θz, rotation_norm, α, β, Maux_xy, Maux_z) = prealloc
-    sample = 1
+    sample = _sample_counter(sig)
 
     ψ_start = seq.ψ[1]
-    if !iszero(ψ_start)
+    @trace track_numbers=false if !iszero(ψ_start)
         @. M.xy = M.xy * cis(-ψ_start)
     end
 
-    i = firstindex(seq.Δt)
-    while i + 2 <= lastindex(seq.Δt)
+    @trace track_numbers=false for i in firstindex(seq.Δt):3:(lastindex(seq.Δt)-2)
         i0 = i
         i_minus = i0 + 1
         i_plus = i_minus + 1
         i1 = i_plus + 1
-        (seq.excitation_bool[i0] && seq.excitation_bool[i_minus] && seq.excitation_bool[i_plus]) ||
-            throw(ArgumentError("BlochMagnusGL RF intervals must contain two Gauss-Legendre nodes."))
 
         Δt = seq.t[i1] - seq.t[i0]
         x, y, z = spin_coordinates!(
@@ -51,19 +48,15 @@ function run_spin_excitation!(
         @. M.xy = M.xy * exp(-Δt / p.T2)
         @. M.z = M.z * exp(-Δt / p.T1) + p.ρ * (T(1) - exp(-Δt / p.T1))
         outflow_spin_reset_at!(M, seq.t, i1, p.motion; replace_by=p.ρ)
-        if seq.ADC[i1]
-            coords = spin_coordinates!(
-                prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i1],
-            )
-            update_sensitivities!(prealloc.sens, sys.receiver, coords, p.motion)
-            acquire_signal!(@view(sig[sample, :]), M.xy, prealloc.sens, coords)
-            sample += 1
+        if !isempty(sig)
+            adc = seq.ADC[i1]
+            acquire_signal!(sig, sample, adc, M, sys, prealloc, p, seq, i1 - 1)
+            sample += adc
         end
-        i = i1
     end
 
     ψ_end = seq.ψ[end]
-    if !iszero(ψ_end)
+    @trace track_numbers=false if !iszero(ψ_end)
         @. M.xy = M.xy * cis(ψ_end)
     end
     return nothing

@@ -791,6 +791,87 @@ end
     @test NRMSE(sig, sig_jemris) < 1 #NRMSE < 1%
 end
 
+@testitem "BlochDict magnetization during RF" tags=[:core, :nomotion] begin
+    include("initialize_backend.jl")
+
+    duration = 0.6e-3
+    flip_angle = π / 3
+    density = [0.6, 0.8, 1.0]
+    obj = Phantom(x=zeros(3), y=zeros(3), z=zeros(3), ρ=density,
+        T1=fill(Inf, 3), T2=fill(Inf, 3), Δw=zeros(3))
+    seq = Sequence()
+    @addblock seq += (RF(flip_angle / (2π * γ * duration), duration), ADC(3, duration))
+    angles = range(0, flip_angle; length=3)
+
+    # An on-resonance rectangular RF pulse rotates each spin without mixing densities.
+    for save_Mz in (false, true)
+        sim_params = Dict{String,Any}("sim_method" => BlochDict(; save_Mz),
+            "gpu" => USE_GPU, "return_type" => "mat", "precision" => "f64",
+            "Nthreads" => 1, "Δt_rf" => duration / 24)
+        signal = simulate(obj, seq, Scanner(); sim_params, verbose=false)
+        @test signal[:, :, 1] ≈ im .* sin.(angles) .* transpose(density)
+        if save_Mz
+            @test signal[:, :, 2] ≈ cos.(angles) .* transpose(density)
+        end
+    end
+end
+
+@testitem "Automatic differentiation tests" tags=[:core, :nomotion, :blochsimple, :ad, :enzyme, :reactant] begin
+    test_group = Symbol(get(ENV, "TEST_GROUP", "core"))
+    if test_group in (:core, :nomotion, :ad, :enzyme, :reactant)
+        import Enzyme
+        import Reactant
+
+        include(joinpath(@__DIR__, "test_files", "ad_utils.jl"))
+
+        Reactant.set_default_backend("cpu")
+
+        function loss_and_gradient(x, params)
+            result = Enzyme.gradient(
+                Enzyme.ReverseWithPrimal,
+                bloch_node_ad_loss,
+                x,
+                Enzyme.Const(params),
+            )
+            return result.val, result.derivs[1]
+        end
+
+        @testset "Reverse-mode optimization improves the simulated target profile" begin
+            # RF and density derivatives must agree with finite differences across integration schemes.
+            for (sim_method, adc_during_rf) in (
+                (BlochSimple(), false), (Bloch(), false),
+                (BlochMagnusMid2(), false), (BlochMagnusGL4(), false),
+                (BlochDict(), true), (BlochDict(save_Mz=true), true),
+            )
+                params = bloch_node_ad_parameters(sim_method; adc_during_rf)
+                params_ra = bloch_node_ad_reactant_parameters(params)
+                x = Reactant.to_rarray(copy(BLOCH_NODE_AD_X0))
+                compiled = Reactant.allowscalar() do
+                    Reactant.compile(
+                        loss_and_gradient,
+                        (x, params_ra);
+                        sync=true,
+                    )
+                end
+                loss, gradient = compiled(x, params_ra)
+                reactant_loss = Reactant.to_number(loss)
+                reactant_gradient = Array(gradient)
+
+                @test reactant_loss ≈ bloch_node_ad_loss(BLOCH_NODE_AD_X0, params)
+                @test reactant_gradient ≈ bloch_node_ad_fd_gradient(params) rtol=1e-8 atol=1e-10
+
+                step_sizes = 2.0 .^ (0:-1:-10)
+                optimized_losses = map(step_sizes) do step_size
+                    candidate = x .- step_size .* gradient
+                    candidate_loss, _ = compiled(candidate, params_ra)
+                    return Reactant.to_number(candidate_loss)
+                end
+                @test minimum(optimized_losses) < reactant_loss
+            end
+        end
+    end
+end
+
 @testitem "simulate_slice_profile" tags=[:core, :nomotion] begin
     include("initialize_backend.jl")
 

@@ -213,26 +213,23 @@ function run_sim_time_iter!(
         sim_method, backend, obj, Xt, max_block_length, max_adc_samples,
         prealloc_groupsize, sys,
     )
+    seqd = _prepare_sequence(obj, seqd)
 
     for (block, p) in enumerate(parts)
-        seqd_block = @view seqd[p]
         # Params
-        Nadc = sum(seqd_block.ADC[2:end]) # if ADC[1] == true, that is handled by the previous block
+        Nadc = count(@view seqd.ADC[(first(p) + 1):last(p)]) # ADC at the shared boundary belongs to the previous block
         acq_samples = samples:(samples + Nadc - 1)
-        dims = [Colon() for i in 1:(ndims(sig) - 1)] # :,:,:,... Ndim times
         # Simulation wrappers
         if excitation_bool[block]
-            run_spin_excitation_parallel!(
-                obj, seqd_block, @view(sig[acq_samples, dims...]), Xt, sys,
-                sim_method, excitation_groupsize, backend, prealloc_result; Nthreads
-            )
+            _run_simulation_block!(run_spin_excitation_parallel!, obj, seqd, p,
+                sig, acq_samples, Xt, sys, sim_method, excitation_groupsize,
+                backend, prealloc_result; Nthreads)
             rfs += 1
 
         else
-            run_spin_precession_parallel!(
-                obj, seqd_block, @view(sig[acq_samples, dims...]), Xt, sys,
-                sim_method, precession_groupsize, backend, prealloc_result; Nthreads
-            )
+            _run_simulation_block!(run_spin_precession_parallel!, obj, seqd, p,
+                sig, acq_samples, Xt, sys, sim_method, precession_groupsize,
+                backend, prealloc_result; Nthreads)
         end
         KA.synchronize(backend)
         samples += Nadc
@@ -247,6 +244,15 @@ function run_sim_time_iter!(
 
     return nothing
 end
+
+@inline function _run_simulation_block!(runner, obj, seqd, p, sig, samples, Xt,
+    sys, method, groupsize, backend, preallocated; Nthreads)
+    dims = ntuple(_ -> Colon(), ndims(sig) - 1)
+    runner(obj, @view(seqd[p]), @view(sig[samples, dims...]), Xt,
+        sys, method, groupsize, backend, preallocated; Nthreads)
+end
+
+_prepare_sequence(obj, seqd) = seqd
 
 """Split if simulation block is too long (more than max_block_length)"""
 function split_range(r, max_block_length)
@@ -280,7 +286,9 @@ function get_sim_ranges(seqd::DiscreteSequence; max_block_length=Inf, max_rf_blo
 
     starts = Int[firstindex(seqd.Δt)]
     for i in (firstindex(seqd.excitation_bool) + 1):lastindex(seqd.excitation_bool)
-        seqd.excitation_bool[i] == seqd.excitation_bool[i - 1] || push!(starts, i)
+        if seqd.excitation_bool[i] != seqd.excitation_bool[i - 1]
+            push!(starts, i)
+        end
     end
     stops = [starts[i] - 1 for i in 2:length(starts)]
     push!(stops, lastindex(seqd.Δt))
@@ -400,7 +408,8 @@ function simulate(
     if sim_params["gpu"]
         sim_params["Nthreads"] = 1
     end
-    sig = zeros(ComplexF64, Ndims..., sim_params["Nthreads"])
+    sig = similar(obj.ρ, ComplexF64, Ndims..., sim_params["Nthreads"])
+    fill!(sig, 0)
     supports_float64 = KA.supports_float64(backend)
     if sim_params["gpu"] && sim_params["precision"] == "bigfloat"
         set_precision_fallback!(sim_params, backend, supports_float64 ? "f64" : "f32")
@@ -448,11 +457,13 @@ function simulate(
         sim_params,
         callbacks=all_callbacks,
     )
-    # Result to CPU, if already in the CPU it does nothing
-    sig = sig |> cpu
+    # Result to CPU
+    if sim_params["gpu"]
+        sig = sig |> cpu
+        Xt = Xt |> cpu
+    end
     sig = sum(sig; dims=length(Ndims) + 1) #Sum over threads, no-op for gpu (Nthreads=1)
     sig .*= get_adc_phase_compensation(seq)
-    Xt = Xt |> cpu
     # Output
     if sim_params["return_type"] == "state"
         out = Xt

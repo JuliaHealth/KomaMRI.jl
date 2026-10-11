@@ -61,7 +61,35 @@ function update_sensitivities!(
 end
 
 function acquire_signal!(sig, Mxy::AbstractVector, ::UniformCoilSens, _)
-    sig .= sum(Mxy)
+    sig[begin] = only(sum(Mxy))
+    return nothing
+end
+
+@inline acquire_signal!(sig, sample, Mxy, sensitivities, coords) =
+    acquire_signal!(@view(sig[sample, :]), Mxy, sensitivities, coords)
+
+@inline _sample_counter(sig) = firstindex(sig, 1)
+
+@inline function acquire_signal!(sig, sample, adc, M, sys, prealloc, p, seq, i, _sim_method=nothing)
+    @trace track_numbers=false if adc
+        let coords = spin_coordinates!(
+            prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i + 1],
+        )
+            update_sensitivities!(prealloc.sens, sys.receiver, coords, p.motion)
+            acquire_signal!(sig, sample, M.xy, prealloc.sens, coords)
+        end
+    end
+    return nothing
+end
+
+@inline function acquire_signal!(sig, sample, adc, M, sys, prealloc, p, seq, i,
+    block_time, coords)
+    @trace track_numbers=false if adc
+        @. prealloc.M.xy = exp(-block_time / p.T2) * M.xy * cis(prealloc.ϕ)
+        outflow_spin_reset!(prealloc.M.xy, seq.t[i + 1], p.motion)
+        update_sensitivities!(prealloc.sens, sys.receiver, coords, p.motion)
+        acquire_signal!(sig, sample, prealloc.M.xy, prealloc.sens, coords)
+    end
     return nothing
 end
 
