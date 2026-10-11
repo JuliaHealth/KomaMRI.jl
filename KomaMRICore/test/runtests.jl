@@ -806,7 +806,8 @@ end
         end
 
         @testset "Reverse-mode optimization improves the simulated target profile" begin
-            for sim_method in (BlochSimple(), Bloch())
+            # RF and density derivatives must agree with finite differences across integration schemes.
+            for sim_method in (BlochSimple(), Bloch(), BlochMagnusMid2(), BlochMagnusGL4())
                 params = bloch_node_ad_parameters(sim_method)
                 params_ra = bloch_node_ad_reactant_parameters(params)
                 x = Reactant.to_rarray(copy(BLOCH_NODE_AD_X0))

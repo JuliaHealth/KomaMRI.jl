@@ -10,6 +10,11 @@ import KomaMRIBase: linear_interpolate_samples, _foreach_interpolation_sample
 # inspected on the host to determine whether the event is active.
 is_on(rf::RF{<:Reactant.AnyTracedRVector}) = !isempty(rf.A)
 
+_gather_samples(A, indices) = A[indices]
+# Avoid malformed reverse IR for complex gathers followed by strided slices.
+_gather_samples(A::Reactant.AnyTracedRVector{<:Complex}, indices) =
+    complex.(real.(A)[indices], imag.(A)[indices])
+
 function linear_interpolate_samples(
     samples::NamedTuple{(:t, :A), <:Tuple{Any, Reactant.AnyTracedRVector}}, t;
     default=zero(eltype(samples.A)), interpolate=true,
@@ -26,8 +31,9 @@ function linear_interpolate_samples(
         weights[indices] .= w
         valid[indices] .= true
     end
-    values = samples.A[lo] .+ (samples.A[hi] .- samples.A[lo]) .* weights
-    values = ifelse.(lo .== hi, samples.A[lo], values)
+    lower, upper = _gather_samples(samples.A, lo), _gather_samples(samples.A, hi)
+    values = lower .+ (upper .- lower) .* weights
+    values = ifelse.(lo .== hi, lower, values)
     out = similar(samples.A, typeof(default), length(t))
     out .= ifelse.(valid, values, default)
     return out
