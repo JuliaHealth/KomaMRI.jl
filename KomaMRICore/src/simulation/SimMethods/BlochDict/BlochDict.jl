@@ -82,8 +82,20 @@ end
 
 # So we can use the same excitation function than BlochSimple
 function acquire_signal!(sig, sample, M, sim_method::BlochDict)
-    sig[sample, :, 1] .= M.xy
+    sig[sample, :, 1] = M.xy
     if sim_method.save_Mz
-        sig[sample, :, 2] .= M.z
+        sig[sample, :, 2] = M.z
     end
+    return nothing
+end
+
+@inline acquire_signal!(sig, sample, M, sim_method::BlochDict, receiver, coords) =
+    acquire_signal!(sig, sample, M, sim_method)
+
+@inline function acquire_signal!(sig, sample, adc, M, sys, prealloc, p, seq, i,
+    sim_method::BlochDict)
+    @trace track_numbers=false if adc
+        acquire_signal!(sig, sample, M, sim_method)
+    end
+    return nothing
 end

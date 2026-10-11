@@ -2,7 +2,7 @@ using FiniteDifferences: central_fdm, grad
 
 const BLOCH_NODE_AD_X0 = [0.0, 3.5, 0.0, 1.0, 0.75, 0.5]
 
-function bloch_node_ad_parameters(sim_method)
+function bloch_node_ad_parameters(sim_method; adc_during_rf=false)
     rf_duration = 0.6e-3
     total_duration = 1.4e-3
     z = collect(range(-4e-3, 4e-3; length=3))
@@ -30,7 +30,7 @@ function bloch_node_ad_parameters(sim_method)
     seq = Sequence(
         reshape([zero_gradient, zero_gradient, slice_gradient], 3, 1),
         reshape([rf], 1, 1),
-        [ADC(3, total_duration, 0.0)],
+        [ADC(3, adc_during_rf ? rf_duration : total_duration, 0.0)],
         [total_duration],
         [Extension[]],
         Dict{String,Any}(),

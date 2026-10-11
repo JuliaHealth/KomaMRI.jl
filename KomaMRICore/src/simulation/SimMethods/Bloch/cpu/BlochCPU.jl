@@ -40,7 +40,7 @@ end
 
 """Preallocates arrays for use in run_spin_precession! and run_spin_excitation!."""
 function prealloc(
-    ::Bloch, backend::KA.CPU, obj, M,
+    ::Union{Bloch,BlochDict}, backend::KA.CPU, obj, M,
     max_block_length, _max_adc_samples, _groupsize, sys,
 )
     T = eltype(obj.ρ)
@@ -141,7 +141,7 @@ function run_spin_excitation!(
     sig::AbstractArray,
     M::Mag,
     sys,
-    sim_method::Bloch,
+    sim_method::Union{Bloch,BlochDict},
     groupsize,
     backend::KA.CPU,
     prealloc::BlochCPUPrealloc
@@ -189,7 +189,7 @@ function run_spin_excitation!(
         #Acquire signal
         if !isempty(sig)
             adc = all_adc || seq.ADC[i + 1] # ADC at the end of the time step
-            acquire_signal!(sig, sample, adc, M, sys, prealloc, p, seq, i)
+            acquire_signal!(sig, sample, adc, M, sys, prealloc, p, seq, i, sim_method)
             sample += adc
         end
     end

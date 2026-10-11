@@ -23,8 +23,12 @@ end
 
 @testset "RF and density controls through simulate and ADC Reactant Enzyme CUDA accuracy" begin
     # RF and density derivatives must agree with finite differences across integration schemes.
-    for sim_method in (BlochSimple(), Bloch(), BlochMagnusMid2(), BlochMagnusGL4())
-        params = bloch_node_ad_parameters(sim_method)
+    for (sim_method, adc_during_rf) in (
+        (BlochSimple(), false), (Bloch(), false),
+        (BlochMagnusMid2(), false), (BlochMagnusGL4(), false),
+        (BlochDict(), true), (BlochDict(save_Mz=true), true),
+    )
+        params = bloch_node_ad_parameters(sim_method; adc_during_rf)
         params_ra = bloch_node_ad_reactant_parameters(params)
         x = Reactant.to_rarray(copy(BLOCH_NODE_AD_X0))
         compiled = Reactant.@allowscalar Reactant.compile(

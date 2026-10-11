@@ -70,7 +70,7 @@ end
 
 @inline _sample_counter(sig) = firstindex(sig, 1)
 
-@inline function acquire_signal!(sig, sample, adc, M, sys, prealloc, p, seq, i)
+@inline function acquire_signal!(sig, sample, adc, M, sys, prealloc, p, seq, i, _sim_method=nothing)
     @trace track_numbers=false if adc
         let coords = spin_coordinates!(
             prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i + 1],

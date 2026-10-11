@@ -785,6 +785,31 @@ end
     @test NRMSE(sig, sig_jemris) < 1 #NRMSE < 1%
 end
 
+@testitem "BlochDict magnetization during RF" tags=[:core, :nomotion] begin
+    include("initialize_backend.jl")
+
+    duration = 0.6e-3
+    flip_angle = π / 3
+    density = [0.6, 0.8, 1.0]
+    obj = Phantom(x=zeros(3), y=zeros(3), z=zeros(3), ρ=density,
+        T1=fill(Inf, 3), T2=fill(Inf, 3), Δw=zeros(3))
+    seq = Sequence()
+    @addblock seq += (RF(flip_angle / (2π * γ * duration), duration), ADC(3, duration))
+    angles = range(0, flip_angle; length=3)
+
+    # An on-resonance rectangular RF pulse rotates each spin without mixing densities.
+    for save_Mz in (false, true)
+        sim_params = Dict{String,Any}("sim_method" => BlochDict(; save_Mz),
+            "gpu" => USE_GPU, "return_type" => "mat", "precision" => "f64",
+            "Nthreads" => 1, "Δt_rf" => duration / 24)
+        signal = simulate(obj, seq, Scanner(); sim_params, verbose=false)
+        @test signal[:, :, 1] ≈ im .* sin.(angles) .* transpose(density)
+        if save_Mz
+            @test signal[:, :, 2] ≈ cos.(angles) .* transpose(density)
+        end
+    end
+end
+
 @testitem "Automatic differentiation tests" tags=[:core, :nomotion, :blochsimple, :ad, :enzyme, :reactant] begin
     test_group = Symbol(get(ENV, "TEST_GROUP", "core"))
     if test_group in (:core, :nomotion, :ad, :enzyme, :reactant)
@@ -807,8 +832,12 @@ end
 
         @testset "Reverse-mode optimization improves the simulated target profile" begin
             # RF and density derivatives must agree with finite differences across integration schemes.
-            for sim_method in (BlochSimple(), Bloch(), BlochMagnusMid2(), BlochMagnusGL4())
-                params = bloch_node_ad_parameters(sim_method)
+            for (sim_method, adc_during_rf) in (
+                (BlochSimple(), false), (Bloch(), false),
+                (BlochMagnusMid2(), false), (BlochMagnusGL4(), false),
+                (BlochDict(), true), (BlochDict(save_Mz=true), true),
+            )
+                params = bloch_node_ad_parameters(sim_method; adc_during_rf)
                 params_ra = bloch_node_ad_reactant_parameters(params)
                 x = Reactant.to_rarray(copy(BLOCH_NODE_AD_X0))
                 compiled = Reactant.allowscalar() do
