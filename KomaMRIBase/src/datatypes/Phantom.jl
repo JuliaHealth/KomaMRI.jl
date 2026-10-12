@@ -78,6 +78,9 @@ Base.:(≈)(::Union{NoMotion, Motion, MotionList},  ::Union{NoMotion, Motion, Mo
 
 """Separate object spins in a sub-group"""
 function Base.getindex(obj::Phantom, p)
+    p == Colon() || p == 1:length(obj) ||
+        isnothing(filter_cycle_remapped_flowpath(obj.motion)) ||
+        throw(ArgumentError("Cannot slice a phantom with a cycle_map; use the full spin set in its original order."))
     fields = []
     for field in NON_STRING_PHANTOM_FIELDS
         push!(fields, (field, getfield(obj, field)[p]))
@@ -85,6 +88,9 @@ function Base.getindex(obj::Phantom, p)
     return Phantom(; name=obj.name, fields...)
 end
 function Base.view(obj::Phantom, p)
+    p == Colon() || p == 1:length(obj) ||
+        isnothing(filter_cycle_remapped_flowpath(obj.motion)) ||
+        throw(ArgumentError("Cannot slice a phantom with a cycle_map; use the full spin set in its original order."))
     fields = []
     for field in NON_STRING_PHANTOM_FIELDS
         push!(fields, (field, @view(getfield(obj, field)[p])))
