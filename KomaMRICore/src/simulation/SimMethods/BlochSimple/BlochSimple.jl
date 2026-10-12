@@ -92,7 +92,7 @@ function run_spin_precession!(
     M.xy .= Mxy[:, end]
     M.z  .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
     #Reset Spin-State (Magnetization). Only for FlowPath
-    spin_reset = spin_reset_state(prealloc)
+    spin_reset = spin_reset_state(prealloc, p.motion, seq.t, backend, length(p))
     for column in axes(Mxy, 2)
         outflow_spin_reset_at!(
             @view(Mxy[:, column]), spin_reset, column + 1, seq.t, p.motion,
@@ -137,7 +137,7 @@ function run_spin_excitation!(
     prealloc::PreallocResult
 ) where {T<:Real}
     sample = 1
-    spin_reset = spin_reset_state(prealloc)
+    spin_reset = spin_reset_state(prealloc, p.motion, seq.t, backend, length(p))
     advance_spin_reset!(spin_reset, firstindex(seq.t))
     outflow_spin_reset!(M, spin_reset; replace_by=p.ρ)
     # Rotating frame -> RF frame

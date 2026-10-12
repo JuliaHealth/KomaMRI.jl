@@ -44,6 +44,11 @@ julia> f = FlowPath(
     cycle_map::Union{Nothing,Vector{Int}} = nothing
 end
 
+Base.:(≈)(::FlowPath, ::FlowPath) = false
+Base.:(≈)(a::FlowPath{T}, b::FlowPath{T}) where {T<:Real} =
+    a.dx ≈ b.dx && a.dy ≈ b.dy && a.dz ≈ b.dz &&
+    a.spin_reset == b.spin_reset && a.cycle_map == b.cycle_map
+
 FlowPath(dx, dy, dz, spin_reset::BitMatrix; cycle_map=nothing) = FlowPath(dx, dy, dz, collect(spin_reset); cycle_map)
 function FlowPath(dx, dy, dz, spin_reset::AbstractArray{Bool}; cycle_map=nothing)
     isnothing(cycle_map) ||

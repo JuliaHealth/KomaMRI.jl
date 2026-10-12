@@ -55,6 +55,15 @@ spin_reset_state(prealloc::BlochCPUPrealloc) = prealloc.spin_reset
 spin_reset_state(prealloc::BlochGPUPrealloc) = prealloc.spin_reset
 spin_reset_state(prealloc::BlochMagnusCPUPrealloc) = prealloc.spin_reset
 
+spin_reset_state(prealloc::PreallocResult, motion, t, backend, nspins) =
+   spin_reset_state(spin_reset_state(prealloc), motion, t, backend, nspins)
+spin_reset_state(state::SpinResetState, motion, t, backend, nspins) = state
+function spin_reset_state(::NoSpinReset, motion, t, backend, nspins)
+   state = prealloc_spin_reset(motion, backend, nspins, length(t))
+   prepare_spin_reset!(state, motion, t, backend)
+   return state
+end
+
 first_reset_steps(state::SpinResetState) = state.first_reset
 first_reset_steps(::NoSpinReset) = nothing
 
