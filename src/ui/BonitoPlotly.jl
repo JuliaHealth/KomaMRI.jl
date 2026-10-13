@@ -100,7 +100,7 @@ function plot_node(plot::Observable; fit_colorbar=false)
             };
             spec.on(update);
             update(spec.value);
-        });
+        }).catch(error => Bonito.send_error("Plot initialization failed", error));
     """
     return DOM.div(PLOTLY_ASSET, div, source; style="width:100%;height:100%;padding:8px;box-sizing:border-box;")
 end

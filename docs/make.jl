@@ -52,7 +52,7 @@ append!(explanation_list, lit_explanation_list)
 append!(reference_list, lit_reference_list)
 
 # Generate documentation
-makedocs(;
+withenv(() -> makedocs(;
     modules=[KomaMRI, KomaMRIBase, KomaMRICore, KomaMRIFiles, KomaMRIPlots],
     sitename="KomaMRI.jl",
     authors="Carlos Castillo Passi and collaborators",
@@ -74,7 +74,7 @@ makedocs(;
         assets=["public/assets/hide-documenter-example-output.css","public/assets/center-images.css"],
     ),
     clean=false,
-)
+), "NODE_OPTIONS" => get(ENV, "NODE_OPTIONS", "--max-old-space-size=8192"))
 
 paper_links = TOML.parsefile(joinpath(@__DIR__, "paper-links.toml"))
 for (i, _) in enumerate(readlines(joinpath(@__DIR__, "build", "bases.txt")))

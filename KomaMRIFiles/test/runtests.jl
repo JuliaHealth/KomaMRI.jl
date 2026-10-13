@@ -87,8 +87,8 @@ end
         obj1.motion = MotionList(
             path(    0.01.*rand(Ns, K-1), 0.01.*rand(Ns, K-1), 0.01.*rand(Ns, K-1),                      TimeRange(t_start, t_end)),
             flowpath(0.01.*rand(Ns, K-1), 0.01.*rand(Ns, K-1), 0.01.*rand(Ns, K-1), rand(Bool, Ns, K-1), TimeRange(t_start, t_end)),
-            Motion(FlowPath{Float64}(zeros(Ns, K-1), zeros(Ns, K-1), zeros(Ns, K-1),
-                BitMatrix(rand(Bool, Ns, K-1))), TimeRange(t_start, t_end))
+            Motion(FlowPath{Float64}(dx=zeros(Ns, K-1), dy=zeros(Ns, K-1), dz=zeros(Ns, K-1),
+                spin_reset=BitMatrix(rand(Bool, Ns, K-1))), TimeRange(t_start, t_end))
         )
         check_phantom_roundtrip(obj1)
     end

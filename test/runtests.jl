@@ -785,13 +785,13 @@ end
                     try
                         Bonito.evaljs(session, js"""
                             window.komaTestPlot = document.querySelector('#content .js-plotly-plot');
-                            const slider = document.querySelector('#content input[type=range]');
-                            slider.value = '2';
-                            slider.dispatchEvent(new Event('input', {bubbles: true}));
+                            const slider = document.querySelector('#content .slider-group .slider-grip-rect');
+                            slider.focus();
+                            slider.dispatchEvent(new KeyboardEvent('keydown', {key:'ArrowLeft', bubbles:true}));
                         """)
                         @test timedwait(() -> Bonito.evaljs_value(session, js"""
                             window.komaTestPlot === document.querySelector('#content .js-plotly-plot') &&
-                            window.komaTestPlot.data[0].z.flat().every(value => value === 4)
+                            window.komaTestPlot.data[0].z.flat().every(value => value === 0)
                         """), 30) == :ok
                         click_button("button_scanner")
                         @test timedwait(() -> Bonito.evaljs_value(session, js"""

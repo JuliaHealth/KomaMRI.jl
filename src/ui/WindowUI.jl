@@ -429,7 +429,7 @@ function setup_bonito_window(sys, seq, obj, sim_params, rec_params;
         session_theme = Bonito.bind_global(session, theme)
         # Plot modules must outlive views displaced while their imports are pending.
         foreach(asset -> Bonito.url(session, asset),
-            (PLOTLY_ASSET, KomaMRIPlots.TIME_PLOT_JS, KomaMRIPlots.SPATIAL_PLOT_JS))
+            (PLOTLY_ASSET, KomaMRIPlots.TIME_PLOT_JS, KomaMRIPlots.SPATIAL_PLOT_JS, KomaMRIPlots.SLICE_PLOT_JS))
         font_styles = asset_stylesheet.(Ref(session), font_stylesheets)
         logos = [Bonito.url(session, Asset(joinpath(komamri_root, "assets", name)))
             for name in ("logo.svg", "logo-dark.svg")]

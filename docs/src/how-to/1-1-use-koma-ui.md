@@ -51,6 +51,9 @@ To see the phantom already stored in RAM, simply click on the `Phantom` dropdown
 
 ![](../assets/gui-phantom-view.png){style="width:90%"}
 
+`View phantom slices` opens three linked slab views. Scroll or drag each slice
+slider to change its position; the thickness selector and motion controls are shared.
+
 For moving phantoms, select `|v|`, `vx`, `vy`, or `vz` to color spins in cm/s. Signed components
 use blue/white/red for negative/zero/positive with fixed symmetric limits over time.
 Magenta marks exit before a reset; cyan marks re-entry after it. Reset jumps are
@@ -133,6 +136,10 @@ Reconstruction `[recon_params]` appears below simulation parameters on the
 Press the `Reconstruct!` button to perform the reconstruction (this may take a while). Automatically the generated **Image** should be displayed or you can click on the `Image` dropdown and then press the `View image` button:
 
 ![](../assets/gui-image-view.png){style="width:90%"}
+
+PAR volumes and compatible SLC stacks open linked image-coordinate slice views.
+Acquisition-label and coil selectors retain the slice positions. Middle-drag to
+adjust window width/level in images or log-k-space; double-click resets it.
 
 ## Exporting results
 

@@ -1,6 +1,6 @@
 name = "KomaMRIPlots"
 uuid = "76db0263-63f3-4d26-bb9a-5dba378db904"
-version = "0.13.2"
+version = "0.14.0"
 authors = ["Carlos Castillo Passi <cncastillo@uc.cl>"]
 
 [workspace]
@@ -16,14 +16,11 @@ PlotlyBase = "a03496cd-edff-5a9b-9e67-9cda94a718b5"
 PlotlyKaleido = "f2990250-8cf9-495f-b13a-cce12b45703c"
 QMRIColors = "2bec176e-9e8c-4764-a62f-295118d1ec05"
 
-[sources]
-KomaMRIBase = {path = "../KomaMRIBase"}
-
 [compat]
 Artifacts = "1"
 Bonito = "4.2, 5"
 Interpolations = "0.13, 0.14, 0.15, 0.16"
-KomaMRIBase = "0.15"
+KomaMRIBase = "0.15.1"
 MAT = "0.10, 0.11, 0.12"
 PlotlyBase = "0.8.23"
 PlotlyKaleido = "2.3.1"
