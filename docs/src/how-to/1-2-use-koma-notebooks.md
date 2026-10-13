@@ -9,7 +9,7 @@ First, install the **Pluto** module in your **Julia** environment. Remember to p
 ```julia-repl
 julia> ]
 
-(@1.9) pkg> add Pluto
+(@v1.13) pkg> add Pluto
 ```
 
 Afterward, return to the **Julia Session** by pressing the `backspace` button, and then execute the `Pluto.run()` function:
@@ -20,14 +20,12 @@ julia> Pluto.run()
 ```
 
 This should automatically open the **Pluto** dashboard in your default web browser:
-```@raw html
-<div style="text-align:center;"><img src="../assets/pluto-dashboard.png" alt="" style="width:75%;"></div>
-```
+
+![](../assets/pluto-dashboard.png){style="width:75%"}
 
 Next, create a new notebook by clicking on `+ Create a new notebook`:
-```@raw html
-<div style="text-align:center;"><img src="../assets/pluto-empty-notebook.png" alt="" style="width:75%;"></div>
-```
+
+![](../assets/pluto-empty-notebook.png){style="width:75%"}
 
 Write and run the following code, which is identical to the [Free Induction Decay example](#Free-Induction-Decay). **Pluto** automatically installs the required modules if they are not present on your system. Additionally, note that we do not directly use **KomaMRI** since we won't be utilizing the [`KomaUI`](@ref) function. Instead, we rely on the **KomaMRICore** and **KomaMRIPlots** dependencies:
 ```@raw html
@@ -45,25 +43,23 @@ Next, install the **IJulia** module in your **Julia** environment. Remember to p
 ```julia-repl
 julia>
 
-(@v1.9) pkg> add IJulia
+(@v1.13) pkg> add IJulia
 ```
 
 For this example, make sure to install **KomaMRICore** and **KomaMRIPlots** (we do not use **KomaMRI** directly since we won't be utilizing the `KomaUI()` function):
 ```julia-repl
-(@v1.9) pkg> add KomaMRICore
+(@v1.13) pkg> add KomaMRICore
 
-(@v1.9) pkg> add KomaMRIPlots
+(@v1.13) pkg> add KomaMRIPlots
 ```
 
-Next, open **Jupyter**, navigate to a working folder, and create a new notebook by clicking on `New`, then `Julia 1.9.3`."
-```@raw html
-<div style="text-align:center;"><img src="../assets/jupyter-create-new-notebook.png" alt="" style="width:75%;"></div>
-```
+Next, open **Jupyter**, navigate to a working folder, and create a new notebook by clicking on `New`, then selecting your installed Julia kernel (e.g. `Julia 1.13.1`).
+
+![](../assets/jupyter-create-new-notebook.png){style="width:75%"}
 
 A new, empty notebook will appear:
-```@raw html
-<div style="text-align:center;"><img src="../assets/jupyter-empty-notebook.png" alt="" style="width:75%;"></div>
-```
+
+![](../assets/jupyter-empty-notebook.png){style="width:75%"}
 
 Proceed to write and execute the provided example:
 
@@ -95,9 +91,7 @@ plot_seq(seq; slider=false, height=300)
 </details>
 ```
 
-```@raw html
-<div style="text-align:center;"><img src="../assets/jupyter-test-notebook.png" alt="" style="width:100%;"></div>
-```
+![](../assets/jupyter-test-notebook.png)
 
 
 This should be sufficient, and now you can start working with **KomaMRI** using **Jupyter** notebooks. Plotly figures use the notebook's standard HTML display and require no WebIO extension.

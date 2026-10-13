@@ -16,7 +16,7 @@ This process should take about 5 minutes in a fresh Julia installation. Here is 
 ```julia-repl
 julia> ]
 
-(@v1.12) pkg> add KomaMRI
+(@v1.13) pkg> add KomaMRI
 
 pkg> app add KomaMRI # Optional: add koma CLI app (Julia 1.12+)
 ```

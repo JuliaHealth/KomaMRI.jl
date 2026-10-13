@@ -8,7 +8,7 @@
 
 # -- 5.1. Collect block event waveforms -------------------------------------
 function block_event_waveforms(rf::RF, gx::Grad, gy::Grad, gz::Grad, adc::ADC; freq_in_phase=false)
-    return (;
+    waveforms = (;
         rf=event_samples(rf; freq_in_phase),
         Δf=event_samples(rf, Val(:Δf)),
         gx=event_samples(gx),
@@ -16,6 +16,8 @@ function block_event_waveforms(rf::RF, gx::Grad, gy::Grad, gz::Grad, adc::ADC; f
         gz=event_samples(gz),
         adc=event_samples(adc),
     )
+    align_sampling_times!((samples.t for samples in waveforms)...)
+    return waveforms
 end
 
 block_event_waveforms(seq, block; freq_in_phase=false) =

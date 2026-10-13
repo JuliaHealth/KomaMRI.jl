@@ -40,7 +40,6 @@ function window_data(source::TracePlotSource, interval, width, visibility)
         end
         fields[:mode] = get(fields, :mode, "lines")
         fields[:visible] = visibility[j]
-        fields[:uid] = "trace-$j"
         fields
     end
     layout = deepcopy(source.layout)
@@ -96,8 +95,8 @@ Multiple RF channels currently use full trace construction before adaptive sampl
 """
 function plot_seq(seq::Sequence; physio=NoPhysioSignal(), width=nothing, height=nothing,
     slider=false, darkmode=false, range=[], title="", adaptive=false, kwargs...)
-    adaptive || return plot_seq_nonadaptive(seq; physio, width, height, slider, darkmode,
-        range, title, kwargs...)
+    adaptive || return pluto_plot(plot_seq_nonadaptive(seq; physio, width, height, slider, darkmode,
+        range, title, kwargs...))
     isempty(kwargs) || throw(ArgumentError("These keywords require adaptive=false: $(join(keys(kwargs), ", "))."))
     source = if size(seq.RF, 1) == 1
         sequence_source(seq; physio, width, height, slider, darkmode, range, title)
@@ -108,7 +107,7 @@ function plot_seq(seq::Sequence; physio=NoPhysioSignal(), width=nothing, height=
     return TimePlot(source)
 end
 
-time_plot(plot, adaptive) = adaptive ? TimePlot(TracePlotSource(plot)) : plot
+time_plot(plot, adaptive) = adaptive ? TimePlot(TracePlotSource(plot)) : pluto_plot(plot)
 
 """
     plot_M0(seq; adaptive=false, physio=NoPhysioSignal(), kwargs...)
@@ -117,7 +116,7 @@ Plot the zero-order gradient moment. Return a self-contained `PlotlyBase.Plot`,
 or a live [`TimePlot`](@ref) with `adaptive=true`.
 
 # Keywords — both modes
-`width=nothing`, `height=nothing`, `slider=true`, `show_seq_blocks=false`,
+`width=nothing`, `height=nothing`, `slider=false`, `show_seq_blocks=false`,
 `darkmode=false`, `range=[]` (milliseconds), `title=""`, and `physio=NoPhysioSignal()`.
 Both modes construct the full moment arrays; adaptive mode limits displayed samples.
 There are no nonadaptive-only keywords.
@@ -178,7 +177,7 @@ Plot raw signals with coil selection as a self-contained `PlotlyBase.Plot`, or a
 [`TimePlot`](@ref) with `adaptive=true`.
 
 # Keywords — both modes
-`width=nothing`, `height=nothing`, `slider=true`, `show_sim_blocks=false`,
+`width=nothing`, `height=nothing`, `slider=false`, `show_sim_blocks=false`,
 `darkmode=false`, `range=[]` (milliseconds), and `gl=false`.
 Both modes construct the full signal arrays. There are no nonadaptive-only keywords.
 """
@@ -187,34 +186,43 @@ plot_signal(raw; adaptive=false, kwargs...) = time_plot(plot_signal_nonadaptive(
 const TIME_PLOTLY = Bonito.Asset(joinpath(artifact"plotly-artifacts", "plotly.min.js"); name="Plotly")
 const TIME_PLOT_JS = Bonito.ES6Module(joinpath(@__DIR__, "TimePlots.js"))
 
-Base.showable(::MIME"text/html", ::TimePlot) = true
 Base.show(io::IO, ::MIME"text/plain", ::TimePlot) = print(io, "TimePlot (live Plotly viewer; display as HTML)")
-Base.show(io::IO, mime::MIME"text/html", plot::TimePlot) =
-    show(io, mime, Bonito.App(session -> Bonito.jsrender(session, plot)))
 
-function Bonito.jsrender(session::Bonito.Session, plot::TimePlot)
+function plot_payload(plot::TimePlot)
     template = plot_template(plot.source)
     visibility = [get(trace, :visible, true) for trace in template.data]
     interval = get(get(template.layout, :xaxis, Dict()), :range, [])
     interval = length(interval) == 2 ? vec(interval) : template.full_range
     initial = window_data(plot.source, interval, 1000, visibility)
     overview = window_data(plot.source, template.full_range, 1000, fill(true, length(visibility)))
+    query = q -> PlotlyBase.JSON.json((;
+        window_data(plot.source, q["range"], q["width"], q["visibility"])..., id=q["id"]))
+    return (; initial=PlotlyBase.JSON.json((; initial..., id=0)),
+        overview=PlotlyBase.JSON.json(overview), query, layout=template.layout)
+end
+
+function plot_observables(session, payload)
     request = Bonito.Observable(Dict{String,Any}())
-    response = Bonito.Observable(PlotlyBase.JSON.json((; initial..., id=0)))
+    response = Bonito.Observable(payload.initial)
     Bonito.on(session, request) do query
         isempty(query) && return
-        result = window_data(plot.source, query["range"], query["width"], query["visibility"])
-        response[] = PlotlyBase.JSON.json((; result..., id=query["id"]))
+        response[] = payload.query(query)
         return nothing
     end
-    width = get(template.layout, :width, nothing)
-    height = get(template.layout, :height, nothing)
-    style = "width:$(isnothing(width) ? "100%" : "$(width)px");height:$(isnothing(height) ? "100%" : "$(height)px");min-height:360px;"
-    root = Bonito.DOM.div(; class="koma-time-plot", style)
+    return request, response
+end
+
+function Bonito.jsrender(session::Bonito.Session, plot::TimePlot)
+    payload = plot_payload(plot)
+    request, response = plot_observables(session, payload)
+    width = get(payload.layout, :width, nothing)
+    height = get(payload.layout, :height, nothing)
+    style = "width:$(isnothing(width) ? "100%" : "$(width)px");height:$(isnothing(height) ? "100%" : "$(height)px");min-height:$(isnothing(height) ? 360 : 0)px;"
+    root = Bonito.DOM.div(TIME_PLOTLY, TIME_PLOT_JS; class="koma-time-plot", style)
     Bonito.onload(session, root, js"""async root => {
         const [Plotly, viewer] = await Promise.all([$(TIME_PLOTLY), $(TIME_PLOT_JS)]);
         if (!root?.isConnected) return;
-        viewer.mount(root, Plotly, $(request), $(response), $(PlotlyBase.JSON.json(overview)));
+        viewer.mount(root, Plotly, $(request), $(response), $(payload.overview));
     }""")
     return Bonito.jsrender(session, root)
 end

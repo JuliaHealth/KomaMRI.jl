@@ -44,12 +44,14 @@ function launch_ui(;
     setup_actions!(w)
     push!(w.listeners, on(physio -> show_sequence!(w, w.seq[], :sequence; physio), w.physio))
     push!(w.listeners, on(seq -> w.physio[] = default_physio_signal(seq), w.seq))
-    push!(w.listeners, on(obj -> show_phantom!(w, obj), w.obj))
+    push!(w.listeners, on(obj -> show_phantom!(w, obj; slice_view=w.state[] == "phantom_slice"), w.obj))
     observe_scanner!(w, w.sys)
     push!(w.listeners, on(raw -> show_signal!(w, raw), w.raw))
     push!(w.listeners, on(img -> show_image!(w, img, :absi), w.img))
-    push!(w.listeners, on(params -> w.state[] == "simparams" && show_parameters!(w, params, "Simulation parameters", "simparams"), w.sim_params))
-    push!(w.listeners, on(params -> show_parameters!(w, params, "Reconstruction parameters", "recparams"), w.rec_params))
+    push!(w.listeners, on(params -> w.state[] == "configuration" ? show_configuration!(w) :
+        w.state[] == "simparams" && show_parameters!(w, params, "Simulation parameters", "simparams"), w.sim_params))
+    push!(w.listeners, on(params -> w.state[] == "configuration" ? show_configuration!(w) :
+        show_parameters!(w, params, "Reconstruction parameters", "recparams"), w.rec_params))
 
     if show_window
         if browser

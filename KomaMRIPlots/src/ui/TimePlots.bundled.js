@@ -2,6 +2,111 @@
 // deno-lint-ignore-file
 // This code was bundled using `deno bundle` and it's not recommended to edit it manually
 
+const same = (a, b)=>JSON.stringify(a) === JSON.stringify(b);
+const choices = (control)=>control.steps ?? control.buttons ?? [];
+const controlKey = (control)=>JSON.stringify([
+        control.name,
+        control.currentvalue?.prefix,
+        choices(control)[0]?.label
+    ]);
+function reconcileControls(layout, current, previous) {
+    for (const key of [
+        'sliders',
+        'updatemenus'
+    ]){
+        const controls = (layout[key] ?? []).map((control)=>[
+                control,
+                previous?.[key]?.find((item)=>controlKey(item) === controlKey(control)),
+                current?.[key]?.find((item)=>controlKey(item) === controlKey(control))
+            ]);
+        const overrides = new Set(controls.filter(([control, old])=>old && !same(control.active ?? 0, old.active ?? 0)).map(([control])=>control.name ?? controlKey(control)));
+        for (const [control, old, live] of controls){
+            if (!old || !live || overrides.has(control.name ?? controlKey(control))) continue;
+            const selected = choices(live)[live.active ?? 0]?.label;
+            const index = live.active === -1 ? -1 : choices(control).findIndex((choice)=>same(choice.label, selected));
+            if (live.active === -1 || index >= 0) control.active = index;
+        }
+    }
+}
+async function applyControlSelections(graph, Plotly) {
+    const hidden = new Set(graph.data.filter((trace)=>trace.visible === 'legendonly').map((trace)=>trace.uid));
+    const selections = [
+        'sliders',
+        'updatemenus'
+    ].flatMap((key)=>(graph.layout[key] ?? []).flatMap((control)=>{
+            const selection = choices(control)[control.active ?? 0];
+            return selection && [
+                'restyle',
+                'relayout',
+                'update'
+            ].includes(selection.method) ? [
+                selection
+            ] : [];
+        }));
+    for (const selection of selections)await Plotly[selection.method](graph, ...selection.args);
+    if (selections.length && hidden.size) await Plotly.restyle(graph, {
+        visible: graph.data.map((trace)=>hidden.has(trace.uid) ? 'legendonly' : trace.visible ?? true)
+    });
+}
+function identifyTraces(data) {
+    const counts = new Map();
+    for (const trace of data){
+        const key = JSON.stringify([
+            trace.name,
+            trace.type,
+            trace.mode,
+            trace.xaxis,
+            trace.yaxis,
+            trace.legendgroup
+        ]);
+        const count = (counts.get(key) ?? 0) + 1;
+        counts.set(key, count);
+        trace.uid ??= `koma-${Array.from(key, (character)=>character.codePointAt(0).toString(16)).join('-')}-${count}`;
+    }
+    return data;
+}
+function reconcilePlot(graph, data, layout, previous) {
+    identifyTraces(data);
+    const definition = {
+        layout: structuredClone(layout),
+        traces: new Map(data.map((trace)=>[
+                trace.uid,
+                trace.visible ?? true
+            ])),
+        revision: (previous?.revision ?? 0) + 1
+    };
+    if (previous && graph._fullLayout) {
+        const oldTraces = new Map(graph.data.map((trace)=>[
+                trace.uid,
+                trace
+            ]));
+        for (const trace of data){
+            const live = oldTraces.get(trace.uid);
+            if (live?.visible !== false && previous.traces.has(trace.uid) && same(trace.visible ?? true, previous.traces.get(trace.uid))) trace.visible = live?.visible ?? trace.visible;
+        }
+        for (const [key, axis] of Object.entries(layout)){
+            if (!/^[xy]axis\d*$/.test(key)) continue;
+            const old = previous.layout[key], current = graph._fullLayout[key];
+            if (old && current && !axis.fixedrange && same(axis.range, old.range) && same(axis.autorange, old.autorange) && same(axis.title, old.title)) Object.assign(axis, {
+                range: [
+                    ...current.range
+                ],
+                autorange: false
+            });
+        }
+        for (const [key, scene] of Object.entries(layout)){
+            if (!/^scene\d*$/.test(key) || !previous.layout[key] || !graph._fullLayout[key]) continue;
+            if (same(scene.camera, previous.layout[key].camera) && [
+                'xaxis',
+                'yaxis',
+                'zaxis'
+            ].every((axis)=>same(scene[axis]?.title, previous.layout[key][axis]?.title))) scene.camera = graph._fullLayout[key]._scene.getCamera();
+        }
+        reconcileControls(layout, graph.layout, previous.layout);
+    }
+    layout.uirevision = `${layout.uirevision ?? 'koma'}-${definition.revision}`;
+    return definition;
+}
 function themeColors(root, layout) {
     const host = root.closest('[data-plot-theme]');
     if (!host) return {};
@@ -69,18 +174,17 @@ function observeTheme(graph, Plotly) {
     return observer;
 }
 async function mount(root, Plotly, request, response, overviewJSON) {
-    const overview = JSON.parse(overviewJSON);
-    const fullRange = overview.full_range;
+    let overview = JSON.parse(overviewJSON);
+    let fullRange = overview.full_range;
     const graph = document.createElement('div');
     const clip = document.createElement('div');
     const navigator = document.createElement('div');
     root.style.display = 'flex';
     root.style.flexDirection = 'column';
-    graph.style.cssText = 'flex:1 1 0;min-height:260px;width:100%';
+    graph.style.cssText = 'flex:1 1 0;min-height:0;width:100%';
     const group = root.closest('[data-linked-time-plots]');
     if (group) {
         root.style.minHeight = '0';
-        graph.style.minHeight = '0';
     }
     clip.style.cssText = 'height:80px;overflow:hidden;flex:none';
     navigator.style.cssText = 'height:200px;position:relative';
@@ -89,16 +193,16 @@ async function mount(root, Plotly, request, response, overviewJSON) {
     const theme = observeTheme(graph, Plotly);
     const navigatorTheme = observeTheme(navigator, Plotly);
     let range, visibility, revision = 0, rendering = false, pending = null;
-    let ready = false, disposed = false, navigatorReady = false;
+    let ready = false, disposed = false, navigatorReady = false, renderTask;
     const first = JSON.parse(response.value);
+    let definition = reconcilePlot(graph, first.data, first.layout);
     range = first.layout.xaxis?.range?.length === 2 ? [
         ...first.layout.xaxis.range
     ] : [
         ...fullRange
     ];
     visibility = first.data.map((trace)=>trace.visible ?? true);
-    const hasSlider = first.layout.xaxis?.rangeslider?.visible ?? false;
-    if (!hasSlider) clip.style.display = 'none';
+    let hasSlider = first.layout.xaxis?.rangeslider?.visible ?? false, fullYRanges;
     function fetchDetail() {
         if (disposed) return;
         request.notify({
@@ -115,7 +219,7 @@ async function mount(root, Plotly, request, response, overviewJSON) {
         range = [
             ...next
         ];
-        for (const plot of navigatorReady ? [
+        for (const plot of hasSlider && navigatorReady ? [
             graph,
             navigator
         ] : [
@@ -167,8 +271,8 @@ async function mount(root, Plotly, request, response, overviewJSON) {
             }
         ];
     }
-    async function draw(payload) {
-        const layout = themeLayout(root, payload.layout);
+    async function draw(payload, preserveY = true) {
+        const layout = themeLayout(root, structuredClone(payload.layout));
         layout.xaxis ??= {};
         layout.xaxis.domain = [
             0,
@@ -192,8 +296,8 @@ async function mount(root, Plotly, request, response, overviewJSON) {
                 height: layout.height
             });
         }
-        layout.uirevision = 'time-plot';
-        for (const [key, axis] of Object.entries(graph._fullLayout ?? {})){
+        layout.uirevision = `time-plot-${definition.revision}`;
+        for (const [key, axis] of Object.entries(preserveY ? graph._fullLayout ?? {} : {})){
             if (!/^yaxis\d*$/.test(key)) continue;
             layout[key] = {
                 ...layout[key],
@@ -207,15 +311,8 @@ async function mount(root, Plotly, request, response, overviewJSON) {
             ...layout.annotations ?? [],
             ...annotation(payload)
         ];
-        for (const key of [
-            'updatemenus',
-            'sliders'
-        ]){
-            layout[key]?.forEach((control, i)=>{
-                control.active = graph.layout?.[key]?.[i]?.active ?? control.active;
-            });
-        }
-        await Plotly.react(graph, themeTraces(root, payload.data), layout, {
+        if (preserveY) reconcileControls(layout, graph.layout, definition.layout);
+        await Plotly.react(graph, themeTraces(root, identifyTraces(payload.data)), layout, {
             ...payload.config,
             responsive: true
         });
@@ -240,7 +337,7 @@ async function mount(root, Plotly, request, response, overviewJSON) {
     function update(serialized) {
         if (disposed) return false;
         pending = JSON.parse(serialized);
-        render().catch((error)=>Bonito.send_error('Time plot update failed', error));
+        if (!rendering) renderTask = render().catch((error)=>console.error('Time plot update failed', error));
     }
     await draw({
         ...first,
@@ -249,17 +346,19 @@ async function mount(root, Plotly, request, response, overviewJSON) {
                 visible: visibility[i]
             }))
     });
-    const fullYRanges = Object.fromEntries(Object.entries(graph._fullLayout).filter(([key])=>/^yaxis\d*$/.test(key)).map(([key, axis])=>[
-            key,
-            [
-                ...axis.range
-            ]
-        ]));
+    const yRanges = ()=>Object.fromEntries(Object.entries(graph._fullLayout).filter(([key])=>/^yaxis\d*$/.test(key)).map(([key, axis])=>[
+                key,
+                [
+                    ...axis.range
+                ]
+            ]));
+    fullYRanges = yRanges();
     await draw(first);
     response.on(update);
-    if (hasSlider) {
-        const layout = first.layout;
-        await Plotly.newPlot(navigator, themeTraces(root, overview.data.map((trace, i)=>({
+    async function updateNavigator(layout) {
+        clip.style.display = hasSlider ? '' : 'none';
+        if (!hasSlider) return;
+        await Plotly.react(navigator, themeTraces(root, identifyTraces(overview.data).map((trace, i)=>({
                 ...trace,
                 visible: visibility[i],
                 showlegend: false,
@@ -320,6 +419,7 @@ async function mount(root, Plotly, request, response, overviewJSON) {
             displayModeBar: false,
             responsive: true
         });
+        if (navigatorReady) return;
         const fitSlider = ()=>{
             if (disposed) return;
             const slider = navigator.querySelector('.rangeslider-container').getBoundingClientRect();
@@ -329,12 +429,14 @@ async function mount(root, Plotly, request, response, overviewJSON) {
         navigator.on('plotly_afterplot', fitSlider);
         fitSlider();
         navigator.on('plotly_relayout', (event)=>{
-            if (!Object.keys(event).some((key)=>key.startsWith('xaxis.range'))) return;
+            if (rendering || !Object.keys(event).some((key)=>key.startsWith('xaxis.range'))) return;
             setRange(navigator.layout.xaxis.range);
         });
         navigatorReady = true;
     }
+    await updateNavigator(first.layout);
     graph.on('plotly_relayout', async (event)=>{
+        if (rendering) return;
         const reset = {};
         for (const [axis, limits] of Object.entries(fullYRanges)){
             if (!event[`${axis}.autorange`]) continue;
@@ -355,10 +457,11 @@ async function mount(root, Plotly, request, response, overviewJSON) {
         setRange(next);
     });
     graph.on('plotly_restyle', ()=>{
+        if (rendering) return;
         const next = graph.data.map((trace)=>trace.visible ?? true);
-        if (next.every((v, i)=>v === visibility[i])) return;
+        if (next.length === visibility.length && next.every((v, i)=>v === visibility[i])) return;
         visibility = next;
-        if (navigatorReady) Plotly.restyle(navigator, {
+        if (hasSlider && navigatorReady) Plotly.restyle(navigator, {
             visible: visibility
         });
         fetchDetail();
@@ -378,7 +481,7 @@ async function mount(root, Plotly, request, response, overviewJSON) {
         ];
         if (!ready || next.every((value, i)=>Math.abs(value - size[i]) < 2)) return;
         size = next;
-        if (navigatorReady) Plotly.Plots.resize(navigator);
+        if (hasSlider && navigatorReady) Plotly.Plots.resize(navigator);
         fetchDetail();
     });
     const removal = new MutationObserver(()=>{
@@ -402,5 +505,63 @@ async function mount(root, Plotly, request, response, overviewJSON) {
     resize.observe(root);
     ready = true;
     fetchDetail();
+    return {
+        graph,
+        async rebind (initialJSON, overviewJSON) {
+            revision++;
+            pending = null;
+            await renderTask;
+            const next = JSON.parse(initialJSON);
+            const originalLayout = structuredClone(next.layout);
+            const oldYRanges = yRanges();
+            definition = reconcilePlot(graph, next.data, next.layout, definition);
+            overview = JSON.parse(overviewJSON);
+            fullRange = overview.full_range;
+            range = next.layout.xaxis?.range?.length === 2 ? [
+                ...next.layout.xaxis.range
+            ] : [
+                ...fullRange
+            ];
+            if (range[1] < fullRange[0] || range[0] > fullRange[1]) range = [
+                ...fullRange
+            ];
+            visibility = next.data.map((trace)=>trace.visible ?? true);
+            hasSlider = originalLayout.xaxis?.rangeslider?.visible ?? false;
+            ready = false;
+            rendering = true;
+            try {
+                await draw({
+                    ...next,
+                    layout: originalLayout,
+                    data: overview.data.map((trace, i)=>({
+                            ...trace,
+                            visible: visibility[i]
+                        }))
+                }, false);
+                const nextYRanges = yRanges();
+                for (const [key, limits] of Object.entries(nextYRanges)){
+                    if (JSON.stringify(oldYRanges[key]) === JSON.stringify(fullYRanges[key])) Object.assign(next.layout[key] ??= {}, {
+                        range: limits,
+                        autorange: false
+                    });
+                }
+                fullYRanges = nextYRanges;
+                await draw(next, false);
+                await applyControlSelections(graph, Plotly);
+                visibility = graph.data.map((trace)=>trace.visible ?? true);
+                await updateNavigator(next.layout);
+            } finally{
+                ready = true;
+                rendering = false;
+            }
+            fetchDetail();
+            group?.dispatchEvent(new CustomEvent('koma-time-range', {
+                detail: {
+                    source: root,
+                    range
+                }
+            }));
+        }
+    };
 }
 export { mount as mount };

@@ -126,7 +126,7 @@ function _sequence_geometry(seq; ktraj=nothing, context=adc_label_context(seq))
         matrix[3] = 1
     end
     if !has_fov
-        fov[1:2] .= matrix[1:2] ./ span[1:2]
+        fov[1:2] .= ifelse.(iszero.(span[1:2]), 1e-3, matrix[1:2] ./ span[1:2])
         fov[3] = 1e-3
     end
     return (; matrix, fov, inferred, has_fov)

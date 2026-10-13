@@ -32,6 +32,21 @@ Create scanner files with `write_scanner(sys, "scanner.sys")`; they include hard
 koma -i epi.seq brain.phantom scanner.sys
 ```
 
+## Browser UI
+
+Serve the same UI without opening Electron:
+
+```bash
+koma --browser
+koma --browser --port 9390 -i epi.seq brain.phantom scanner.sys
+```
+
+Open the printed URL in your browser and keep the command running.
+`--host` defaults to `127.0.0.1` and `--port` to `9384`; both also accept `--host=ADDRESS` and `--port=PORT`.
+The UI has no built-in authentication. For a remote server, keep the loopback host
+and use [SSH forwarding](1-1-use-koma-ui.md#Running-on-a-server).
+Output paths (`--outputs`) still select batch execution instead of either UI mode.
+
 ## Running Simulation
 
 Add a simulation output path with `-o` or `--outputs` to run without opening the UI:
@@ -76,6 +91,33 @@ The app starts with CPU threading enabled automatically. To choose a thread coun
 ```bash
 koma --threads=8 -- -i epi.seq brain.phantom -o raw.mrd
 ```
+
+## Configuration files
+
+Load simulation and reconstruction parameters from one TOML file:
+
+```bash
+koma --config settings.toml -i epi.seq brain.phantom -o raw.mrd image.mat
+```
+
+```toml
+[sim_params]
+sim_method = "Bloch"
+precision = "f32"
+
+[recon_params]
+reco = "direct"
+
+[recon_params.recon_policy]
+AVG = "combine"
+COIL = "rss"
+```
+
+Both sections are optional; omitted settings remain unchanged. Individual
+`--sim-param` and `--recon-param` flags override the file regardless of argument
+order. Backend selection remains controlled by `--backend` or local preferences.
+The same file loads through KomaUI's **Configuration** menu or
+`load_file!(w, :configuration, "settings.toml")`.
 
 ## Default App Configuration
 

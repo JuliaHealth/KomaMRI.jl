@@ -1,19 +1,18 @@
-import {themeLayout, themeTraces, observeTheme} from './PlotTheme.js';
+import {themeLayout, themeTraces, observeTheme, identifyTraces, reconcilePlot, reconcileControls, applyControlSelections} from './PlotTheme.js';
 
 // The same component is embedded by Bonito in notebooks, browsers and KomaUI.
 export async function mount(root, Plotly, request, response, overviewJSON) {
-    const overview = JSON.parse(overviewJSON);
-    const fullRange = overview.full_range;
+    let overview = JSON.parse(overviewJSON);
+    let fullRange = overview.full_range;
     const graph = document.createElement('div');
     const clip = document.createElement('div');
     const navigator = document.createElement('div');
     root.style.display = 'flex';
     root.style.flexDirection = 'column';
-    graph.style.cssText = 'flex:1 1 0;min-height:260px;width:100%';
+    graph.style.cssText = 'flex:1 1 0;min-height:0;width:100%';
     const group = root.closest('[data-linked-time-plots]');
     if (group) {
         root.style.minHeight = '0';
-        graph.style.minHeight = '0';
     }
     clip.style.cssText = 'height:80px;overflow:hidden;flex:none';
     navigator.style.cssText = 'height:200px;position:relative';
@@ -23,12 +22,12 @@ export async function mount(root, Plotly, request, response, overviewJSON) {
     const navigatorTheme = observeTheme(navigator, Plotly);
 
     let range, visibility, revision = 0, rendering = false, pending = null;
-    let ready = false, disposed = false, navigatorReady = false;
+    let ready = false, disposed = false, navigatorReady = false, renderTask;
     const first = JSON.parse(response.value);
+    let definition = reconcilePlot(graph, first.data, first.layout);
     range = first.layout.xaxis?.range?.length === 2 ? [...first.layout.xaxis.range] : [...fullRange];
     visibility = first.data.map(trace => trace.visible ?? true);
-    const hasSlider = first.layout.xaxis?.rangeslider?.visible ?? false;
-    if (!hasSlider) clip.style.display = 'none';
+    let hasSlider = first.layout.xaxis?.rangeslider?.visible ?? false, fullYRanges;
 
     function fetchDetail() {
         if (disposed) return;
@@ -37,7 +36,7 @@ export async function mount(root, Plotly, request, response, overviewJSON) {
     function setRange(next) {
         if (next.every((t, i) => t === range[i])) return;
         range = [...next];
-        for (const plot of navigatorReady ? [graph, navigator] : [graph]) {
+        for (const plot of hasSlider && navigatorReady ? [graph, navigator] : [graph]) {
             if (!range.every((t, i) => t === plot.layout.xaxis.range[i])) {
                 const update = {'xaxis.range': [...range], 'xaxis.autorange': false};
                 if (plot === navigator) update['xaxis.rangeslider.range'] = [...fullRange];
@@ -56,8 +55,8 @@ export async function mount(root, Plotly, request, response, overviewJSON) {
             xshift: -2, yshift: 2, showarrow: false, borderpad: 0, font: {size: 7.2},
             hovertext: `${payload.shown.toLocaleString()} / ${payload.available.toLocaleString()} samples shown. Zoom in for full detail.`}];
     }
-    async function draw(payload) {
-        const layout = themeLayout(root, payload.layout);
+    async function draw(payload, preserveY = true) {
+        const layout = themeLayout(root, structuredClone(payload.layout));
         layout.xaxis ??= {};
         layout.xaxis.domain = [0, 1];
         layout.xaxis.range = [...range];
@@ -72,19 +71,14 @@ export async function mount(root, Plotly, request, response, overviewJSON) {
             // Resize first so Plotly recomputes the legend's automatic margin before updating data.
             await Plotly.relayout(graph, {width: layout.width, height: layout.height});
         }
-        layout.uirevision = 'time-plot';
-        for (const [key, axis] of Object.entries(graph._fullLayout ?? {})) {
+        layout.uirevision = `time-plot-${definition.revision}`;
+        for (const [key, axis] of Object.entries(preserveY ? graph._fullLayout ?? {} : {})) {
             if (!/^yaxis\d*$/.test(key)) continue;
             layout[key] = {...layout[key], range: [...axis.range], autorange: false};
         }
         layout.annotations = [...(layout.annotations ?? []), ...annotation(payload)];
-        // Plotly controls remain native; preserve their selection when detail arrives.
-        for (const key of ['updatemenus', 'sliders']) {
-            layout[key]?.forEach((control, i) => {
-                control.active = graph.layout?.[key]?.[i]?.active ?? control.active;
-            });
-        }
-        await Plotly.react(graph, themeTraces(root, payload.data), layout, {...payload.config, responsive: true});
+        if (preserveY) reconcileControls(layout, graph.layout, definition.layout);
+        await Plotly.react(graph, themeTraces(root, identifyTraces(payload.data)), layout, {...payload.config, responsive: true});
     }
     async function render() {
         if (rendering || disposed) return;
@@ -103,18 +97,20 @@ export async function mount(root, Plotly, request, response, overviewJSON) {
     function update(serialized) {
         if (disposed) return false;
         pending = JSON.parse(serialized);
-        render().catch(error => Bonito.send_error('Time plot update failed', error));
+        if (!rendering) renderTask = render().catch(error => console.error('Time plot update failed', error));
     }
     await draw({...first, data: overview.data.map((trace, i) => ({...trace, visible: visibility[i]}))});
-    const fullYRanges = Object.fromEntries(Object.entries(graph._fullLayout)
+    const yRanges = () => Object.fromEntries(Object.entries(graph._fullLayout)
         .filter(([key]) => /^yaxis\d*$/.test(key))
         .map(([key, axis]) => [key, [...axis.range]]));
+    fullYRanges = yRanges();
     await draw(first);
     response.on(update);
 
-    if (hasSlider) {
-        const layout = first.layout;
-        await Plotly.newPlot(navigator, themeTraces(root, overview.data.map((trace, i) => ({...trace,
+    async function updateNavigator(layout) {
+        clip.style.display = hasSlider ? '' : 'none';
+        if (!hasSlider) return;
+        await Plotly.react(navigator, themeTraces(root, identifyTraces(overview.data).map((trace, i) => ({...trace,
             visible: visibility[i], showlegend: false, hoverinfo: 'skip', hovertemplate: null}))), {
             height: 200, margin: {l: graph._fullLayout.margin.l, r: graph._fullLayout.margin.r, t: 0, b: 0},
             template: layout.template, colorway: layout.colorway,
@@ -127,6 +123,7 @@ export async function mount(root, Plotly, request, response, overviewJSON) {
             ...(layout.yaxis2 ? {yaxis2: {...layout.yaxis2, visible: false}} : {}),
             ...(layout.yaxis3 ? {yaxis3: {...layout.yaxis3, visible: false}} : {}),
         }, {displayModeBar: false, responsive: true});
+        if (navigatorReady) return;
         const fitSlider = () => {
             if (disposed) return;
             const slider = navigator.querySelector('.rangeslider-container').getBoundingClientRect();
@@ -136,12 +133,14 @@ export async function mount(root, Plotly, request, response, overviewJSON) {
         navigator.on('plotly_afterplot', fitSlider);
         fitSlider();
         navigator.on('plotly_relayout', event => {
-            if (!Object.keys(event).some(key => key.startsWith('xaxis.range'))) return;
+            if (rendering || !Object.keys(event).some(key => key.startsWith('xaxis.range'))) return;
             setRange(navigator.layout.xaxis.range);
         });
         navigatorReady = true;
     }
+    await updateNavigator(first.layout);
     graph.on('plotly_relayout', async event => {
+        if (rendering) return;
         const reset = {};
         for (const [axis, limits] of Object.entries(fullYRanges)) {
             if (!event[`${axis}.autorange`]) continue;
@@ -158,10 +157,11 @@ export async function mount(root, Plotly, request, response, overviewJSON) {
         setRange(next);
     });
     graph.on('plotly_restyle', () => {
+        if (rendering) return;
         const next = graph.data.map(trace => trace.visible ?? true);
-        if (next.every((v, i) => v === visibility[i])) return;
+        if (next.length === visibility.length && next.every((v, i) => v === visibility[i])) return;
         visibility = next;
-        if (navigatorReady) Plotly.restyle(navigator, {visible: visibility});
+        if (hasSlider && navigatorReady) Plotly.restyle(navigator, {visible: visibility});
         fetchDetail();
     });
     const syncRange = event => {
@@ -173,7 +173,7 @@ export async function mount(root, Plotly, request, response, overviewJSON) {
         const next = [root.clientWidth, root.clientHeight];
         if (!ready || next.every((value, i) => Math.abs(value - size[i]) < 2)) return;
         size = next;
-        if (navigatorReady) Plotly.Plots.resize(navigator);
+        if (hasSlider && navigatorReady) Plotly.Plots.resize(navigator);
         fetchDetail();
     });
     const removal = new MutationObserver(() => {
@@ -187,4 +187,37 @@ export async function mount(root, Plotly, request, response, overviewJSON) {
     resize.observe(root);
     ready = true;
     fetchDetail();
+    return {graph, async rebind(initialJSON, overviewJSON) {
+        revision++;
+        pending = null;
+        await renderTask;
+        const next = JSON.parse(initialJSON);
+        const originalLayout = structuredClone(next.layout);
+        const oldYRanges = yRanges();
+        definition = reconcilePlot(graph, next.data, next.layout, definition);
+        overview = JSON.parse(overviewJSON);
+        fullRange = overview.full_range;
+        range = next.layout.xaxis?.range?.length === 2 ? [...next.layout.xaxis.range] : [...fullRange];
+        if (range[1] < fullRange[0] || range[0] > fullRange[1]) range = [...fullRange];
+        visibility = next.data.map(trace => trace.visible ?? true);
+        hasSlider = originalLayout.xaxis?.rangeslider?.visible ?? false;
+        ready = false;
+        rendering = true;
+        try {
+            await draw({...next, layout: originalLayout,
+                data: overview.data.map((trace, i) => ({...trace, visible: visibility[i]}))}, false);
+            const nextYRanges = yRanges();
+            for (const [key, limits] of Object.entries(nextYRanges)) {
+                if (JSON.stringify(oldYRanges[key]) === JSON.stringify(fullYRanges[key]))
+                    Object.assign(next.layout[key] ??= {}, {range: limits, autorange: false});
+            }
+            fullYRanges = nextYRanges;
+            await draw(next, false);
+            await applyControlSelections(graph, Plotly);
+            visibility = graph.data.map(trace => trace.visible ?? true);
+            await updateNavigator(next.layout);
+        } finally { ready = true; rendering = false; }
+        fetchDetail();
+        group?.dispatchEvent(new CustomEvent('koma-time-range', {detail: {source: root, range}}));
+    }};
 }

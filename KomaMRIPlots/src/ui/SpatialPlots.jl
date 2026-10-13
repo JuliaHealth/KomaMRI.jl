@@ -204,6 +204,7 @@ function phantom_property_plot(obj, key; view_2d, height=700, width=nothing,
     if view_2d
         layout[:xaxis], layout[:yaxis] = axes[dimensions[1]], axes[dimensions[2]]
         layout[:xaxis][:scaleanchor], layout[:yaxis][:scaleratio] = "y", 1
+        layout[:xaxis][:constrain] = layout[:yaxis][:constrain] = "domain"
         layout[:autosize] = true
     else
         foreach(axis -> axis[:fixedrange] = true, axes)
@@ -246,6 +247,7 @@ function phantom_spatial_plot(obj, key; frame_times, view_2d, properties, kwargs
     end for property in properties)
     source = PhantomSpatialSource(obj, values, frame_times, [1 => first_frame], property_plots)
     extent = maximum(v -> maximum(abs, v), first_frame)
+    bounds = map(extrema, first_frame)
     velocity_limits = zeros(4)
     has_velocity = any(in((:speed, :vx, :vy, :vz)), properties)
     previous = first_frame
@@ -253,6 +255,7 @@ function phantom_spatial_plot(obj, key; frame_times, view_2d, properties, kwargs
     for frame in eachindex(frame_times)
         coordinates = phantom_frame(source, frame)
         extent = max(extent, maximum(v -> maximum(abs, v), coordinates))
+        bounds = map((bound, v) -> (min(bound[1], minimum(v)), max(bound[2], maximum(v))), bounds, coordinates)
         if has_velocity && frame > 1
             interval = (frame_times[frame - 1], frame_times[frame])
             dt = interval[2] - interval[1]
@@ -273,24 +276,24 @@ function phantom_spatial_plot(obj, key; frame_times, view_2d, properties, kwargs
     end
     template.data[1] = deepcopy(first(property_plots[key].data))
     if has_velocity
-        layout[:legend] = attr(; orientation="h", x=0.5, xanchor="center", y=1)
+        layout[:legend] = attr(; orientation="h", xref="container", yref="container", yanchor="top", x=0.5, xanchor="center", y=1)
     end
     layout.fields[:title] = length(properties) > 1 ?
         attr(; text=obj.name, x=0.5, xanchor="center", y=1, yref="paper",
             yanchor="bottom", pad=attr(; b=16)) : obj.name * ": " * string(key)
-    layout.fields[:meta] = Dict("phantom_property" => string(key))
+    layout.fields[:meta] = Dict("phantom_property" => string(key), "spatial_range" => [-extent, extent], "spatial_bounds" => bounds)
     if length(properties) > 1
         groups = has_velocity ? (properties[1:end-4], properties[end-3:end]) : (properties,)
         layout[:updatemenus] = [attr(; name="phantom-property", type="buttons", direction="right",
             x=0.5, xanchor=has_velocity ? (group_index == 1 ? "right" : "left") : "center",
-            y=1, yanchor="bottom", pad=attr(; b=50, l=has_velocity ? 10 : 0, r=has_velocity ? 10 : 0), showactive=true,
-            bgcolor="#2a7fb8", bordercolor="#2a7fb8", font=attr(; color="#111111"),
+            y=1, yanchor="bottom", pad=attr(; b=has_velocity ? 95 : 50, l=has_velocity ? 10 : 0, r=has_velocity ? 10 : 0), showactive=true,
+            bgcolor="#2a7fb8", bordercolor="#2a7fb8", font=attr(; color="white"),
             active=something(findfirst(==(key), group), 0)-1,
             buttons=[attr(; label=property == :speed ? "|v|" : string(property), method="skip", name="phantom-property",
                 args=[string(property)]) for property in group]) for (group_index, group) in enumerate(groups)]
         has_velocity && (layout[:annotations] = [attr(; text="—", x=0.5, y=1,
-            xref="paper", yref="paper", xanchor="center", yanchor="middle", yshift=66, showarrow=false)])
-        layout[:margin][:t] = 105
+            xref="paper", yref="paper", xanchor="center", yanchor="middle", yshift=111, showarrow=false)])
+        layout[:margin][:t] = has_velocity ? 135 : 84
     end
     length(frame_times) > 1 && (layout[:margin][:b] = 50)
     dimensions = view_2d ? [findfirst(==(layout[axis][:title]), ("x", "y", "z"))
@@ -311,7 +314,10 @@ function portable_phantom_frames(plot, query)
     data = GenericTrace[]
     for frame in eachindex(plot.source.times)
         traces = spatial_data(plot, merge(query, Dict("frame" => frame))).data
-        foreach(trace -> trace[:visible] = frame == 1, traces)
+        for trace in traces
+            trace[:visible] = frame == 1
+            trace[:uid] *= "-$(bitstring(plot.source.times[frame]))"
+        end
         append!(data, traces)
     end
     return data
@@ -427,6 +433,11 @@ function spatial_indices(coordinates, values, matrix, width, height, dimensions;
 end
 
 function spatial_data(plot::SpatialPlot{<:PhantomSpatialSource}, query)
+    haskey(plot.template.layout[:meta], "phantom_slices") && return phantom_slice_data(plot, query)
+    return phantom_spatial_data(plot, query, plot.dimensions)
+end
+
+function phantom_spatial_data(plot, query, dimensions; selection=eachindex(plot.source.obj.x))
     preview = get(query, "preview", false)
     source = plot.source
     key = Symbol(get(query, "property", first(keys(source.values))))
@@ -437,7 +448,7 @@ function spatial_data(plot::SpatialPlot{<:PhantomSpatialSource}, query)
     matrix = reshape(Float64.(query["projection"]), 4, 4)
     selection_values = length(source.values) == 1 ? values : source.obj.ρ
     indices, available = spatial_indices(coordinates, selection_values, matrix,
-        query["width"], query["height"], length(plot.dimensions); preview)
+        query["width"], query["height"], length(dimensions); preview, selection)
     shown = length(indices)
     velocity = key in (:speed, :vx, :vy, :vz)
     if isnothing(reset) && length(source.values) > 1
@@ -457,7 +468,8 @@ function spatial_data(plot::SpatialPlot{<:PhantomSpatialSource}, query)
     end
     data = map(enumerate(groups)) do (group, ids)
         trace = deepcopy(first(source.properties[key].data))
-        for (axis, dim) in zip((:x, :y, :z), plot.dimensions)
+        trace[:uid] = "phantom-$group"
+        for (axis, dim) in zip((:x, :y, :z), dimensions)
             trace[axis] = coordinates[dim][ids]
         end
         trace[:ids] = string.(ids)
@@ -474,7 +486,7 @@ function spatial_data(plot::SpatialPlot{<:PhantomSpatialSource}, query)
             velocity && (trace[:hovertemplate] = "Spin %{customdata}<br>$name<extra></extra>")
             # Empty event traces otherwise disappear from Plotly's legend between frames.
             if isempty(ids)
-                for axis in (:x, :y, :z)[1:length(plot.dimensions)]
+                for axis in (:x, :y, :z)[1:length(dimensions)]
                     trace[axis] = [nothing]
                 end
             end
@@ -496,7 +508,7 @@ function phantom_plot(obj, key; adaptive, max_spins, time_samples,
     frame_times = spatial_times(obj.motion, time_samples)
     plot = phantom_spatial_plot(obj, key; frame_times, properties, kwargs...)
     adaptive && return plot
-    return portable_phantom_plot(plot)
+    return pluto_plot(portable_phantom_plot(plot))
 end
 
 function grid_priority(grid, node, matrix, width, height)
@@ -559,6 +571,7 @@ function spatial_data(plot::SpatialPlot{<:CoilSpatialSource}, query)
     values = get_sens(source.receiver, coordinates...)[:, query["coil"]]
     phase = query["component"] == 2
     trace = deepcopy(first(plot.template.data))
+    trace[:uid] = "coil-map"
     for (axis, dim) in zip((:x, :y, :z), plot.dimensions)
         trace[axis] = 100 .* coordinates[dim]
     end
@@ -575,36 +588,46 @@ function spatial_data(plot::SpatialPlot{<:CoilSpatialSource}, query)
         spacing=step(first(source.grid)))
 end
 
-spatial_query(plot; width=900, height=600) = Dict{String,Any}(
+function spatial_query(plot; width=900, height=600)
+    query = Dict{String,Any}(
     "id"=>0, "projection"=>vec(spatial_projection(plot)), "width"=>width, "height"=>height,
     "frame"=>1, "coil"=>1, "component"=>1,
     "property"=>get(get(plot.template.layout, :meta, Dict()), "phantom_property", nothing))
+    slices = get(get(plot.template.layout, :meta, Dict()), "phantom_slices", nothing)
+    if !isnothing(slices)
+        query["slices"] = Dict("center" => slices.center, "thickness" => slices.thickness,
+            "ranges" => [[plot.template.layout[Symbol(axis)][:range] for axis in plane.axes] for plane in slices.planes],
+            "sizes" => [[width * (plane.domain[1][2] - plane.domain[1][1]),
+                height * (plane.domain[2][2] - plane.domain[2][1])] for plane in slices.planes])
+    end
+    return query
+end
 
 const SPATIAL_PLOT_JS = Bonito.ES6Module(joinpath(@__DIR__, "SpatialPlots.js"))
 spatial_controls(source) = nothing
-Base.showable(::MIME"text/html", ::SpatialPlot) = true
+spatial_navigator(source) = nothing
 Base.show(io::IO, ::MIME"text/plain", ::SpatialPlot) = print(io, "SpatialPlot (live Plotly viewer; display as HTML)")
-Base.show(io::IO, mime::MIME"text/html", plot::SpatialPlot) =
-    show(io, mime, Bonito.App(session -> Bonito.jsrender(session, plot)))
 
-function Bonito.jsrender(session::Bonito.Session, plot::SpatialPlot)
+function plot_payload(plot::SpatialPlot)
     initial = spatial_data(plot, spatial_query(plot))
-    request = Bonito.Observable(Dict{String,Any}())
-    response = Bonito.Observable(PlotlyBase.JSON.json((; initial..., id=0)))
-    Bonito.on(session, request) do query
-        isempty(query) && return
-        response[] = PlotlyBase.JSON.json((; spatial_data(plot, query)..., id=query["id"]))
-        return nothing
-    end
-    width, height = get(plot.template.layout, :width, nothing), get(plot.template.layout, :height, nothing)
-    style = "width:$(isnothing(width) ? "100%" : "$(width)px");height:$(isnothing(height) ? "100%" : "$(height)px");min-height:300px;"
-    root = Bonito.DOM.div(; class="koma-spatial-plot", style)
+    query = q -> PlotlyBase.JSON.json((; spatial_data(plot, q)..., id=q["id"]))
     template = PlotlyBase.JSON.json((; layout=plot.template.layout, config=plot.template.config,
         plot.dimensions, kspace=spatial_controls(plot.source)))
+    return (; initial=PlotlyBase.JSON.json((; initial..., id=0)), template, query,
+        layout=plot.template.layout)
+end
+
+function Bonito.jsrender(session::Bonito.Session, plot::SpatialPlot)
+    payload = plot_payload(plot)
+    request, response = plot_observables(session, payload)
+    width, height = get(plot.template.layout, :width, nothing), get(plot.template.layout, :height, nothing)
+    style = "width:$(isnothing(width) ? "100%" : "$(width)px");height:$(isnothing(height) ? "100%" : "$(height)px");min-height:$(isnothing(height) ? 300 : 0)px;"
+    root = Bonito.DOM.div(TIME_PLOTLY, SPATIAL_PLOT_JS, spatial_navigator(plot.source);
+        class="koma-spatial-plot", style, dataLinkedTimePlots=true)
     Bonito.onload(session, root, js"""async root => {
         const [Plotly, viewer] = await Promise.all([$(TIME_PLOTLY), $(SPATIAL_PLOT_JS)]);
         if (!root?.isConnected) return;
-        viewer.mount(root, Plotly, $(request), $(response), $(template));
+        viewer.mount(root, Plotly, $(request), $(response), $(Bonito.JSString(PlotlyBase.JSON.json(payload.template))));
     }""")
     return Bonito.jsrender(session, root)
 end

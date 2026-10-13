@@ -21,24 +21,16 @@ This section describes the internal structure of the `.phantom` file. While most
 
 ### Phantom File Tree
 
-```@raw html
-<p><img width="80%" src="../assets/ph-file-format.svg"/></p>
-```
+![](../assets/ph-file-format.svg){style="width:80%"}
 
 ### Action types
 
-```@raw html
-<p><img width="80%" src="../assets/ph-actions.svg"/></p>
-```
+![](../assets/ph-actions.svg){style="width:80%"}
 
 ### TimeCurve
 
-```@raw html
-<p><img width="80%" src="../assets/ph-timecurve.svg"/></p>
-```
+![](../assets/ph-timecurve.svg){style="width:80%"}
 
 ### SpinSpan types
 
-```@raw html
-<p><img width="80%" src="../assets/ph-spins.svg"/></p>
-```
+![](../assets/ph-spins.svg){style="width:80%"}

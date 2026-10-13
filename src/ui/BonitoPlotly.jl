@@ -1,11 +1,15 @@
 const PLOTLY_ASSET = Asset(joinpath(artifact"plotly-artifacts", "plotly.min.js"); name="Plotly")
 const PLOT_THEME = Bonito.ES6Module(joinpath(pkgdir(KomaMRIPlots), "src", "ui", "PlotTheme.js"))
 
-plot_node(plot::Union{KomaMRIPlots.TimePlot,KomaMRIPlots.SpatialPlot}) =
+plot_node(plot::Union{KomaMRIPlots.TimePlot,KomaMRIPlots.SpatialPlot,KomaMRIPlots.KspacePlot}) =
     DOM.div(plot; style="width:100%;height:100%;padding:8px;box-sizing:border-box;")
 
 plot_node(plot::PlotlyBase.Plot; fit_colorbar=false) =
-    plot_node(Observable(plot); fit_colorbar)
+    plot_node(plot, get(KomaMRIPlots.KOMA_PLOTS, plot, nothing); fit_colorbar)
+
+plot_node(plot, ::Nothing; fit_colorbar=false) = plot_node(Observable(plot); fit_colorbar)
+plot_node(plot, source::KomaMRIPlots.KspaceSpatialSource; fit_colorbar=false) =
+    plot_node(KomaMRIPlots.KspacePlot(source, plot))
 
 function plot_node(plot::Observable; fit_colorbar=false)
     div = DOM.div(; style="width:100%;height:100%;")
@@ -13,7 +17,7 @@ function plot_node(plot::Observable; fit_colorbar=false)
         sprint(show, MIME"application/vnd.plotly.v1+json"(), value)
     end
     source = js"""
-        Promise.all([$(PLOTLY_ASSET), $(PLOT_THEME)]).then(([Plotly, theme]) => {
+        Promise.all([$(PLOTLY_ASSET), $(PLOT_THEME), $(KomaMRIPlots.SLICE_PLOT_JS)]).then(([Plotly, theme, viewer]) => {
             const graph = $(div);
             if (!graph?.isConnected) return;
             const themeObserver = theme.observeTheme(graph, Plotly);
@@ -21,10 +25,14 @@ function plot_node(plot::Observable; fit_colorbar=false)
             let pending = null;
             let alignPending = false;
             let rendering = false;
+            let slices = null;
+            let definition = null;
+            let controls = null;
             const dispose = () => {
                 if (graph.isConnected) return;
                 observer.disconnect();
                 themeObserver.disconnect();
+                slices?.dispose();
                 pending = null;
                 alignPending = false;
                 // An in-flight draw must finish before its graph state is purged.
@@ -32,17 +40,6 @@ function plot_node(plot::Observable; fit_colorbar=false)
             };
             const observer = new MutationObserver(dispose);
             observer.observe(document, {childList: true, subtree: true});
-            const styleComponentButtons = () => {
-                graph.querySelectorAll('.updatemenu-header-group').forEach(group => {
-                    const menu = group.__data__;
-                    if (!['image-component', 'coil-component'].includes(menu.name)) return;
-                    group.querySelectorAll('.updatemenu-button').forEach((button, index) => {
-                        button.classList.add('koma-component-button');
-                        button.setAttribute('role', 'button');
-                        button.setAttribute('aria-pressed', String(index === menu.active));
-                    });
-                });
-            };
             const render = async () => {
                 rendering = true;
                 try {
@@ -53,27 +50,17 @@ function plot_node(plot::Observable; fit_colorbar=false)
                             pending = null;
                             delete figure.layout.width;
                             delete figure.layout.height;
-                            // Keep the image component when another label or coil selects new data.
-                            const menu = figure.layout.updatemenus?.find(menu => menu.name === 'image-component');
-                            if (menu) {
-                                menu.active = graph.layout?.updatemenus?.find(previous => previous.name === menu.name)?.active ?? 0;
-                                const [data, layout] = menu.buttons[menu.active].args;
-                                figure.data.forEach((trace, index) => trace.visible = data.visible[index]);
-                                if (layout['yaxis.range']) {
-                                    figure.layout.yaxis.range = layout['yaxis.range'];
-                                    figure.layout.yaxis.title = layout['yaxis.title'];
-                                }
-                            }
-                            await Plotly.react(
-                                graph, figure.data, theme.themeLayout(graph, {...figure.layout, autosize: true}),
-                                {...figure.config, responsive: true}
-                            );
-                            for (const event of ['plotly_afterplot', 'plotly_buttonclicked']) {
-                                graph.removeListener(event, styleComponentButtons);
-                                graph.on(event, styleComponentButtons);
-                            }
-                            styleComponentButtons();
-                            if ($(fit_colorbar) && graph.isConnected) {
+                            figure.layout.autosize = true;
+                            definition = await theme.renderPlot(graph, Plotly, figure, definition);
+                            controls ??= theme.observeControls(graph, Plotly);
+                            await controls();
+                            const model=figure.layout.meta?.image_slices;
+                            if (model) {
+                                alignPending=false;
+                                if (slices) await slices.rebind(model);
+                                else slices=viewer.mountSlices(graph,Plotly);
+                            } else { slices?.dispose(); slices=null; }
+                            if ($(fit_colorbar) && !model && graph.isConnected) {
                                 graph.removeListener('plotly_afterplot', alignColorbar);
                                 graph.on('plotly_afterplot', alignColorbar);
                                 alignPending = true;
@@ -102,7 +89,7 @@ function plot_node(plot::Observable; fit_colorbar=false)
                 if (!rendering) render().catch(error => Bonito.send_error("Plot update failed", error));
             };
             const alignColorbar = () => {
-                if (!graph.isConnected) return;
+                if (!graph.isConnected || graph.layout.meta?.image_slices) return;
                 alignPending = true;
                 requestRender();
             };

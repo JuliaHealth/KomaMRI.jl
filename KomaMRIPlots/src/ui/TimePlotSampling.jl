@@ -145,7 +145,6 @@ function block_window_data(source, range, width, visibility)
             output[field] = [i == 0 ? nothing : values[i] for i in indices]
         end
         output[:mode] = get(output, :mode, "lines") == "line" ? "lines" : get(output, :mode, "lines")
-        output[:uid] = "trace-$(j)"
         output[:visible] = visibility[j]
         shown += count(i -> i != 0 && range[1] <= candidates.x[i] <= range[2], indices)
     end

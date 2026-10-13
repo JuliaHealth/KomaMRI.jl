@@ -474,44 +474,15 @@ end
     end
 end
 
-@testitem "Sequence reconstruction metadata warning" tags=[:koma] begin
-    warning = KomaMRI.sequence_reconstruction_warning
-    seq = Sequence()
-    # Guessed dimensions are reported before simulation without changing the declared metadata.
-    @test isempty(warning(seq))
-    @addblock seq += ADC(8, 1e-3)
-    @test occursin("Nx=8, Ny=1, Nz=1", warning(seq))
-    @test occursin("Explicitly specifying Nx/Ny/Nz in [DEFINITIONS] is recommended", warning(seq))
-    @test occursin("FOV is missing", warning(seq))
-    seq.DEF = Dict("Nx"=>8, "Ny"=>8, "Nz"=>1, "FOV"=>fill(0.08, 3))
-    @test isempty(warning(seq))
-
-    # Trailing labels do not invent dimensions; explicit definitions are never replaced by guesses.
-    seq.DEF = Dict("FOV"=>[0.08, 0.08, 0.08])
-    definitions = copy(seq.DEF)
-    @test occursin("guessed: Nx, Ny, Nz", warning(seq))
-    @test seq.DEF == definitions
-    @addblock seq += (LabelSet(0, "PAR"),)
-    @test occursin("Nz=1", warning(seq))
-    @addblock seq += (ADC(8, 1e-3), LabelSet(0, "LIN"))
-    @test occursin("Nx=8, Ny=1, Nz=1", warning(seq))
-    merge!(seq.DEF, Dict("Nx"=>8, "Ny"=>1, "Nz"=>1))
-    @test isempty(warning(seq))
-
-    # Encoding counters are zero-based; undeclared matrices use maximum + 1, including unacquired indices.
-    for (label, dimension) in (("LIN", "Ny"), ("PAR", "Nz"))
+@testitem "ADC label validation" tags=[:koma] begin
+    # Zero-based encoding counters must fit the declared matrix.
+    for label in ("LIN", "PAR")
         encoding = Sequence()
         @addblock for index in 1:8
             encoding += (ADC(8, 1e-3), LabelSet(index, label), LabelSet(3, "SLC"), LabelSet(5, "REP"))
         end
         encoding.DEF = Dict("Nx"=>8, "Ny"=>8, "Nz"=>8, "FOV"=>fill(0.08, 3))
-        @test occursin("$label reaches 8, outside $dimension=8", warning(encoding))
         @test_throws ArgumentError signal_to_raw_data(zeros(ComplexF32, 64, 1), encoding)
-        delete!(encoding.DEF, dimension)
-        @test occursin("$dimension=9", warning(encoding)) && occursin("guessed: $dimension", warning(encoding))
-        # Nonzero slice/repetition labels and a valid partial encoding range need no warning.
-        encoding.DEF[dimension] = 9
-        @test isempty(warning(encoding))
     end
 
     # Simulation rejects negative accumulated labels even between acquisitions.
@@ -519,7 +490,6 @@ end
     negative.DEF = Dict("Nx"=>8, "Ny"=>1, "Nz"=>1)
     @addblock negative += ADC(8, 1e-3)
     @addblock negative += (LabelSet(-1, "REP"),)
-    @test occursin("Negative ADC labels: REP", warning(negative))
     @test_throws ErrorException KomaMRICore._assert_nonnegative_adc_labels(negative)
 end
 
@@ -694,17 +664,15 @@ end
                     click_button("button_scanner_params")
                     @test timedwait(() -> w.state[] == "scanneparams", 30) == :ok
 
-                    click_button("button_sim_params")
-                    @test timedwait(() -> w.state[] == "simparams", 30) == :ok
-
-                    click_button("button_rec_params")
-                    @test timedwait(() -> w.state[] == "recparams", 30) == :ok
+                    click_button("button_configuration")
+                    @test timedwait(() -> w.state[] == "configuration", 30) == :ok
                 end
 
                 @testset "Simulation and raw signal" begin
-                    # Simulation must use replacement options, not the launch-time dictionary.
+                    # Replacing options preserves the current view; simulation uses the replacement dictionary.
+                    previous_view = w.state[]
                     w.sim_params[] = Dict("gpu" => false, "precision" => "f64")
-                    @test w.state[] == "simparams"
+                    @test w.state[] == previous_view
                     click_button("simulate!", "sig"; timeout=180)
                     @test !isempty(w.raw[].profiles)
                     @test w.raw[].params["userParameters"]["precision"] == "f64"

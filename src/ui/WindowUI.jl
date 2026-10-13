@@ -70,6 +70,8 @@ end
 const WORKSPACE_ROUTES = IdDict{KomaWindow,String}()
 window_route(w) = get(WORKSPACE_ROUTES, w, "/")
 
+Base.show(io::IO, ::KomaWindow) = print(io, "KomaWindow()")
+
 function page_content(content, state)
     return DOM.div(
         content;

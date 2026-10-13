@@ -7,7 +7,7 @@
         # Real images retain signed values; only complex images expose component controls.
         real_image = [-2 3; 4 -5]
         real_plot = plot_image(real_image)
-        @test only(real_plot.data)[:z] == real_image
+        @test stack(only(real_plot.data)[:z]) == real_image
         @test isempty(get(real_plot.layout, :updatemenus, []))
 
         # Known phasors select magnitude or radians without applying magnitude limits to phase.
@@ -15,10 +15,10 @@
         plot = plot_image(image; zmin=0, zmax=6)
         buttons = only(plot.layout[:updatemenus])[:buttons]
         magnitude, phase = [only(plot.data[button[:args][1][:visible]]) for button in buttons]
-        @test magnitude[:z] == [2 3; 4 5]
-        @test phase[:z] ≈ [0 π/2; π -π/2]
+        @test stack(magnitude[:z]) == [2 3; 4 5]
+        @test stack(phase[:z]) ≈ [0 π/2; π -π/2]
         @test (magnitude[:zmin], magnitude[:zmax]) == (0, 6)
-        @test (phase[:zmin], phase[:zmax]) == (-π, π)
+        @test (phase[:zmin], phase[:zmax]) == (-Float64(π), Float64(π))
         @test first(phase[:colorscale])[2] == last(phase[:colorscale])[2]
 
         # A navigator uses the same component controls, with headroom only for magnitude.

@@ -132,6 +132,8 @@ function setup_filepickers!(w::KomaWindow)
         :raw_data;
         accept=".h5,.mrd",
     )
+    setup_filepicker!(w, "#configfilepicker", "#configname", ".toml (Koma)",
+        :configuration; accept=".toml")
     return nothing
 end
 

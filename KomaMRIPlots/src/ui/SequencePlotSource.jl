@@ -53,7 +53,7 @@ function block_samples(context, channel, block)
 end
 
 function sequence_source(seq; physio=NoPhysioSignal(), width=nothing, height=nothing,
-    slider=true, darkmode=false, range=[], title="")
+    slider=false, darkmode=false, range=[], title="")
     seq = resolve_triggers(seq, physio)
     starts = get_block_start_times(seq)
     labels = get_labels(seq)

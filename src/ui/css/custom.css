@@ -76,21 +76,6 @@ body, button{
   }
 }
 
-.koma-component-button .updatemenu-item-text {
-  fill: white !important;
-}
-
-.koma-component-button .updatemenu-item-rect {
-  fill: #2a7fb8 !important;
-  fill-opacity: 1 !important;
-}
-
-.koma-component-button[aria-pressed="true"] .updatemenu-item-rect,
-.koma-component-button:hover .updatemenu-item-rect {
-  fill: #1e5c85 !important;
-  stroke: #1e5c85 !important;
-}
-
 .koma-sidebar {
   --koma-sidebar-inset-x: 1rem;
   --koma-sidebar-inset-y: 1rem;
@@ -316,6 +301,13 @@ body, button{
   width: 100%;
 }
 
+@media (max-height: 700px) {
+  .koma-sidebar-footer,
+  .koma-sidebar > .koma-sidebar-divider {
+    display: none;
+  }
+}
+
 .koma-theme-switch {
   display: flex;
   align-items: center;
@@ -448,22 +440,12 @@ body, button{
   padding-inline: 4px;
 }
 
-.koma-sidebar.is-collapsed .koma-action-button ~ .dropdown-toggle-split,
-.koma-sidebar.is-collapsed .koma-action-button ~ .dropdown-menu {
-  display: none;
-}
-
-.koma-sidebar.is-collapsed .btn-group > .btn.koma-action-button {
-  border-radius: 0.2rem;
-}
-
 .koma-sidebar.is-collapsed .koma-action-button.koma-simulation-progress {
   padding-inline: 0;
   font-size: 0.75rem;
 }
 
-.koma-sidebar.is-collapsed .dropdown > .dropdown-menu:not(.koma-scroll-menu),
-.koma-sidebar.is-collapsed .btn-group > .dropdown-menu:not(.koma-scroll-menu) {
+.koma-sidebar.is-collapsed .dropdown > .dropdown-menu:not(.koma-scroll-menu) {
   position: absolute;
   inset: 0 auto auto calc(100% + 8px) !important;
   transform: none !important;
@@ -509,13 +491,8 @@ body, button{
   color: var(--koma-text) !important;
 }
 
-.koma-sidebar.is-collapsed .koma-sidebar-footer > .dropdown > .dropdown-menu {
-  top: auto !important;
-  bottom: 0 !important;
-}
-
-.koma-sidebar.is-collapsed .koma-nav-link[aria-expanded="true"]::before,
-.koma-sidebar.is-collapsed .koma-nav-link[aria-expanded="true"]::after {
+.koma-sidebar.is-collapsed :is(.koma-nav-link[aria-expanded="true"], .koma-scroll-menu.show)::before,
+.koma-sidebar.is-collapsed :is(.koma-nav-link[aria-expanded="true"], .koma-scroll-menu.show)::after {
   content: "";
   display: block;
   position: absolute;
@@ -530,16 +507,28 @@ body, button{
   pointer-events: none;
 }
 
-.koma-sidebar.is-collapsed .koma-nav-link[aria-expanded="true"]::before {
+.koma-sidebar.is-collapsed :is(.koma-nav-link[aria-expanded="true"], .koma-scroll-menu.show)::before {
   margin-left: -1px;
   border-width: 8px 10px 8px 0;
   border-right-color: rgba(0, 0, 0, 0.15);
   filter: drop-shadow(0 8px 8px rgba(0, 0, 0, 0.15));
 }
 
-.koma-sidebar.is-collapsed .koma-nav-link[aria-expanded="true"]::after {
+.koma-sidebar.is-collapsed :is(.koma-nav-link[aria-expanded="true"], .koma-scroll-menu.show)::after {
   border-width: 7px 9px 7px 0;
   border-right-color: var(--koma-menu);
+}
+
+.koma-sidebar.is-collapsed .koma-nav-link:has(+ .koma-scroll-menu)::before,
+.koma-sidebar.is-collapsed .koma-nav-link:has(+ .koma-scroll-menu)::after {
+  display: none;
+}
+
+.koma-sidebar.is-collapsed .koma-scroll-menu.show::before,
+.koma-sidebar.is-collapsed .koma-scroll-menu.show::after {
+  top: var(--koma-menu-arrow-y, 50%);
+  left: auto;
+  right: 100%;
 }
 
 #main > :last-child {
@@ -615,7 +604,9 @@ body, button{
   min-height: 0;
 }
 
-.koma-content-container > .bonito-fragment,
+.koma-content-container > div,
+.koma-content-container > div > .bonito-fragment,
+.koma-content-container > div > .bonito-fragment > div:last-child,
 .koma-content-container > .bonito-fragment > div:last-child,
 .koma-content {
   width: 100%;
@@ -642,6 +633,9 @@ body, button{
   padding: 16px 16px 16px 32px;
   overflow: auto;
 }
+
+.koma-configuration-view { overflow: auto; }
+.koma-configuration-view > .koma-table-view { height: auto; overflow: visible; }
 
 .koma-table-title {
   padding: 0 0 12px;
@@ -973,6 +967,7 @@ div.topsep, plot-containter {
 }
 
 .pname {
+  flex-shrink: 0;
   margin-left: 24px;
   overflow: hidden;
   text-overflow: ellipsis;

@@ -13,16 +13,17 @@ function show_sequence!(w, seq, view; darkmode=w.darkmode[], physio=NoPhysioSign
         set_content!(w, plot_node(plot), "sequence")
     elseif view === :kspace
         display_loading!(w, "Plotting kspace ...")
-        set_content!(w, plot_node(plot_kspace(seq; darkmode, adaptive=true, physio)), "kspace")
+        plot = plot_kspace(seq; darkmode, adaptive=true, adaptive_navigator=true, physio)
+        set_content!(w, plot_node(plot), "kspace")
     elseif view in (:moment0, :moment1, :moment2)
         index = findfirst(==(view), (:moment0, :moment1, :moment2))
         order = index - 1
         display_loading!(w, "Plotting moment $order ...")
-        plot = (plot_M0, plot_M1, plot_M2)[index](seq; adaptive=true, darkmode, physio)
+        plot = (plot_M0, plot_M1, plot_M2)[index](seq; adaptive=true, slider=true, darkmode, physio)
         set_content!(w, sequence_comparison(seq, plot; darkmode, physio, show_rf_center=true), "m$order")
     elseif view === :slew_rate
         display_loading!(w, "Plotting slew rate ...")
-        plot = plot_slew_rate(seq; adaptive=true, darkmode, physio)
+        plot = plot_slew_rate(seq; adaptive=true, slider=true, darkmode, physio)
         set_content!(w, sequence_comparison(seq, plot; darkmode, physio), "slew_rate")
     else
         throw(ArgumentError("Unsupported sequence view: $view"))
@@ -46,12 +47,14 @@ function sequence_comparison(seq, plot; darkmode, physio, show_rf_center=false)
         class="koma-sequence-comparison", dataLinkedTimePlots=true)
 end
 
-function show_phantom!(w, obj; key=:ρ, darkmode=w.darkmode[])
+function show_phantom!(w, obj; key=:ρ, darkmode=w.darkmode[], slice_view=false)
     display_loading!(w, "Plotting phantom ...")
-    plot = plot_phantom(obj; key, time_samples=5, darkmode, adaptive=true, height=nothing)
-    plot.template.layout[:margin][:t] = 84
-    only(plot.template.layout[:sliders])[:pad][:b] = 4
-    return set_content!(w, plot_node(plot), "phantom")
+    plotter = slice_view ? plot_phantom_slice : plot_phantom
+    plot = plotter(obj; key, time_samples=5, darkmode, adaptive=true, height=nothing)
+    if !slice_view
+        only(plot.template.layout[:sliders])[:pad][:b] = 4
+    end
+    return set_content!(w, plot_node(plot), slice_view ? "phantom_slice" : "phantom")
 end
 
 function show_scanner!(w, sys; darkmode=w.darkmode[])
@@ -102,9 +105,17 @@ function show_parameters!(w, parameters, title, state)
     return set_content!(w, dictionary_page(parameters, title), state)
 end
 
+function show_configuration!(w)
+    set_content!(w, DOM.div(
+        dictionary_page(w.sim_params[], "Simulation [sim_params]"),
+        dictionary_page(w.rec_params[], "Reconstruction [recon_params]");
+        class="koma-configuration-view"), "configuration")
+    return nothing
+end
+
 function show_signal!(w, raw; darkmode=w.darkmode[])
     display_loading!(w, "Plotting raw signal ...")
-    return set_content!(w, plot_node(plot_signal(raw; adaptive=true, darkmode)), "sig")
+    return set_content!(w, plot_node(plot_signal(raw; adaptive=true, slider=true, darkmode)), "sig")
 end
 
 const KSPACE_DYNAMIC_RANGE_DB = 60
@@ -138,8 +149,12 @@ function image_aspect_ratio(img::AxisArrays.AxisArray)
     return Float64(step(y.val) / step(x.val))
 end
 
-function reconstruction_plot(data, type, darkmode; zmin, zmax, aspect_ratio=1)
-    plot = plot_image(data; zmin, zmax, darkmode)
+image_spacing(img) = (1,1,1)
+image_spacing(img::AxisArrays.AxisArray) = ntuple(d -> step(AxisArrays.axes(img)[d].val),3)
+
+function reconstruction_plot(data, type, darkmode; zmin, zmax, aspect_ratio=1, spacing=(1,1,1))
+    plot = ndims(data)==3 ? plot_image(data; zmin,zmax,darkmode,spacing) : plot_image(data; zmin,zmax,darkmode)
+    ndims(data)==3 && return plot
     plot.layout.margin[:t] = 6
     if size(data, 2) != 1
         plot.layout.yaxis[:constrain] = "domain"
@@ -159,17 +174,15 @@ end
 function image_plot(img::AbstractArray, type, darkmode)
     data, zmin, zmax = image_values(img, type)
     aspect_ratio = type === :absi ? image_aspect_ratio(img) : 1
-    slider = Slider(1:size(img, 3))
-    plot = map(slider.value) do slice
-        reconstruction_plot(data[:, :, slice], type, darkmode; zmin, zmax, aspect_ratio)
-    end
-    node = plot_node(plot; fit_colorbar=true)
-    return size(img, 3) == 1 ? node : DOM.div(slider, node; class="koma-plot-stack")
+    values = size(img,3)==1 ? data[:,:,1] : data
+    return plot_node(reconstruction_plot(values,type,darkmode; zmin,zmax,aspect_ratio,
+        spacing=type===:absi ? image_spacing(img) : (1,1,1)); fit_colorbar=ndims(values)==2)
 end
 
 function reconstruction_slider(label, values)
     slider = Slider(eachindex(values[]); class="koma-reconstruction-slider-input")
     on(values) do options
+        length(slider.values[]) == length(options) && return
         slider.values[] = collect(eachindex(options))
         slider.index[] = min(slider.index[], length(options))
     end
@@ -269,8 +282,16 @@ function reconstruction_series_plot(reconstruction, type, darkmode)
         class="koma-reconstruction-message",
     )
     images = reconstruction.images
+    stack_labels = filter(!=(:SLC), keys(first(images).labels))
+    stack_slices = length(unique(image.labels.SLC for image in images))>1 && all(images) do image
+        peers = matching_reconstructions(images, stack_labels, getproperty.(Ref(image.labels), stack_labels))
+        size(image.image,3)==1 && all(peers) do peer
+            size(peer.image)==size(image.image) && image_aspect_ratio(peer.image)==image_aspect_ratio(image.image) &&
+                reconstruction_dimensions(peer)==reconstruction_dimensions(image)
+        end
+    end
     label_names = filter(keys(first(images).labels)) do name
-        length(unique(getproperty(image.labels, name) for image in images)) > 1
+        !(stack_slices && name===:SLC) && length(unique(getproperty(image.labels,name) for image in images))>1
     end
     label_selections = Pair{Symbol,Observable}[]
     controls = Any[]
@@ -288,16 +309,17 @@ function reconstruction_series_plot(reconstruction, type, darkmode)
         push!(controls, control)
     end
 
-    selected_image = if isempty(label_selections)
-        Observable(only(images))
+    selected_images = if isempty(label_selections)
+        Observable(images)
     else
         selected_labels = first.(label_selections)
         map(last.(label_selections)...) do values...
-            only(matching_reconstructions(images, selected_labels, values))
+            matching_reconstructions(images, selected_labels, values)
         end
     end
+    selected_image = map(first,selected_images)
     dimension_names = filter(first.(reconstruction_dimensions(first(images)))) do name
-        any(length(reconstruction_dimension(image, name)) > 1 for image in images)
+        name!==:PAR && any(length(reconstruction_dimension(image,name))>1 for image in images)
     end
     dimension_selections = Pair{Symbol,Observable}[]
     dimension_values = Pair{Symbol,Observable}[]
@@ -314,9 +336,11 @@ function reconstruction_series_plot(reconstruction, type, darkmode)
     echo_index = findfirst(pair -> first(pair) === :ECO, dimension_values)
     echo = isnothing(echo_index) ? map(image -> only(image.source.ECO), selected_image) :
         last(dimension_values[echo_index])
-    image = map(selected_image) do entry
-        data = type === :absk ? first(image_values(entry.image, type)) : entry.image
-        (; entry, data)
+    image = map(selected_images) do entries
+        ordered = sort(entries;by=entry -> entry.labels.SLC)
+        data = [type===:absk ? first(image_values(entry.image,type)) : entry.image for entry in ordered]
+        (; entry=first(ordered),data=stack_slices ? cat(data...;dims=3) : only(data),
+            zlabels=stack_slices ? [entry.labels.SLC for entry in ordered] : nothing)
     end
     limits = map(selected_image, echo) do image, echo
         reconstruction_limits(image, echo, type)
@@ -325,18 +349,26 @@ function reconstruction_series_plot(reconstruction, type, darkmode)
         selection = Dict(first.(dimension_selections) .=> selected)
         axis_names = AxisArrays.axisnames(image.entry.image)
         indices = ntuple(ndims(image.entry.image)) do dimension
-            dimension <= 2 && return Colon()
+            dimension <= 3 && return Colon()
             name = getproperty(_RECONSTRUCTION_AXIS_LABELS, axis_names[dimension])
             return get(selection, name, 1)
         end
-        plane = @view image.data[indices...]
+        volume = @view image.data[indices...]
+        plane = size(volume,3)==1 ? volume[:,:,1] : volume
         data = type === :absk ? plane : first(image_values(plane, type; limits))
-        reconstruction_plot(
+        figure = reconstruction_plot(
             data, type, darkmode;
             zmin=first(limits),
             zmax=last(limits),
             aspect_ratio=type === :absi ? image_aspect_ratio(image.entry.image) : 1,
+            spacing=type!==:absi ? (1,1,1) : stack_slices ?
+                (1,image_aspect_ratio(image.entry.image),1) : image_spacing(image.entry.image),
         )
+        if !isnothing(image.zlabels) && ndims(plane)==3
+            model=figure.layout[:meta]["image_slices"]
+            figure.layout[:meta]["image_slices"]=(;model...,zlabels=image.zlabels)
+        end
+        figure
     end
     return DOM.div(
         DOM.div(controls...; class="koma-reconstruction-controls"),

@@ -1,5 +1,6 @@
-import {themeLayout, observeTheme} from './PlotTheme.js';
+import {themeLayout, observeTheme, styleControls as stylePlotControls, identifyTraces, reconcilePlot, resetSpatialAxes} from './PlotTheme.js';
 import {mountKspaceRange} from './KspaceRange.js';
+import {mountSlices, sliceAnnotations} from './PhantomSlices.js';
 
 function multiply(a, b) {
     return Array.from({length: 16}, (_, i) => {
@@ -46,32 +47,104 @@ export function playbackFrame(steps, elapsed) {
     return lo + 1;
 }
 
+export async function mountKspace(root, graph, Plotly, config) {
+    let data = structuredClone(graph.data);
+    if (!root.style.height) root.style.height = `${graph.clientHeight}px`;
+    if (!root.style.width && graph.layout.width) root.style.width = `${graph.layout.width}px`;
+    const range = mountKspaceRange(root, graph, config, filter);
+    const theme = observeTheme(graph, Plotly);
+    let selection = [];
+    function bound(times, value, upper) {
+        let lo = 0, hi = times.length;
+        while (lo < hi) {
+            const mid = (lo + hi) >>> 1;
+            if (times[mid] < value || (upper && times[mid] === value)) lo = mid + 1;
+            else hi = mid;
+        }
+        return lo;
+    }
+    async function filter() {
+        const time = range.query.time_range;
+        const selections = [config.times.trajectory, config.times.adc].map(times =>
+            [bound(times,time[0],false), bound(times,time[1],true)]);
+        const indices = selections.flat();
+        if (indices.every((value, i) => value === selection[i])) return;
+        const update = {};
+        for (const key of ['x','y','z','text'])
+            if (data.some(trace => key in trace)) update[key] = data.slice(0,2).map((trace,i) =>
+                trace[key]?.slice(...selections[i]) ?? []);
+        update['marker.color'] = [null, data[1].marker.color.slice(...selections[1])];
+        const view = {};
+        if (graph.layout.scene) {
+            const scene = graph._fullLayout.scene._scene;
+            scene.glplot.selection.object = null;
+            Plotly.Fx.unhover(graph);
+            view['scene.camera'] = scene.getCamera();
+        } else {
+            for (const axis of ['xaxis','yaxis']) {
+                view[`${axis}.range`] = [...graph._fullLayout[axis].range];
+                view[`${axis}.autorange`] = false;
+                view[`${axis}.constrain`] = 'domain';
+            }
+        }
+        await Plotly.update(graph, update, view, [0,1]);
+        selection = indices;
+    }
+    const fit = () => {
+        if (graph.layout.width !== graph.clientWidth || graph.layout.height !== graph.clientHeight)
+            Plotly.relayout(graph, {width:graph.clientWidth, height:graph.clientHeight});
+    };
+    fit();
+    const resize = new ResizeObserver(fit);
+    resize.observe(root);
+    const removed = new MutationObserver(() => {
+        if (root.isConnected) return;
+        removed.disconnect(); resize.disconnect(); theme.disconnect(); range.dispose(); Plotly.purge(graph);
+    });
+    removed.observe(document, {childList:true, subtree:true});
+    return {dispose() {
+        removed.disconnect(); resize.disconnect(); theme.disconnect(); range.dispose();
+    }, async rebind(nextConfig) {
+        config = nextConfig;
+        range.rebind(config);
+        data = structuredClone(graph.data);
+        selection = [];
+        if (range.query.time_range) await filter();
+    }};
+}
+
 export async function mount(root, Plotly, request, response, templateJSON) {
     if (!root.isConnected) return;
-    const template = JSON.parse(templateJSON);
+    let template = JSON.parse(templateJSON);
     const graph = document.createElement('div');
     graph.style.cssText = 'width:100%;height:100%';
-    root.append(graph);
+    root.prepend(graph);
     let frame = 1, coil = 1, component = 1, revision = 0;
     let disposed = false, rendering = false, inFlight = false, wanted = false, timer;
     let preview = false, dragging = false, interacting = false;
-    let pending = null;
+    let pending = null, renderTask;
     let playing = false, playTimer, cameraFrame, cameraTimer, playStarted, drawnFrame = 1;
     const initial = JSON.parse(response.value);
+    let definition = reconcilePlot(graph, initial.data, template.layout);
     let property = initial.property;
-    const range = template.kspace ? mountKspaceRange(root, graph, template.kspace, initial, fetchDetail) : null;
+    let range = template.kspace ? mountKspaceRange(root, graph, template.kspace, fetchDetail) : null;
+    let slices;
     const plotSize = () => range ? [graph.clientWidth, graph.clientHeight] : [root.clientWidth, root.clientHeight];
-    const timeSlider = template.layout.sliders?.find(slider => slider.name === 'time' &&
-        slider.visible !== false && slider.steps?.length > 1);
-    let playbackMenu;
-    if (timeSlider) {
+    let timeSlider, playbackMenu;
+    function playbackControls() {
+        playbackMenu = undefined;
+        timeSlider = template.layout.sliders?.find(slider => slider.name === 'time' &&
+            slider.visible !== false && slider.steps?.length > 1);
+        if (!timeSlider) return;
         timeSlider.pad = {...timeSlider.pad, l: 55};
         template.layout.updatemenus ??= [];
         playbackMenu = template.layout.updatemenus.length;
         template.layout.updatemenus.push({name: 'motion-playback', type: 'buttons',
             showactive: false, x: 0, xanchor: 'left', y: 0, yanchor: 'top', pad: {t: 34},
             buttons: [{name: 'motion-playback', label: '▶', method: 'skip', args: []}]});
+        template.layout.updatemenus[playbackMenu].pad.t = (timeSlider.pad.t ?? 30) + 4;
     }
+    playbackControls();
 
     function schedulePlayback() {
         clearTimeout(playTimer);
@@ -97,7 +170,7 @@ export async function mount(root, Plotly, request, response, templateJSON) {
         const label = playing ? '❚❚' : '▶';
         template.layout.updatemenus[playbackMenu].buttons[0].label = label;
         await Plotly.relayout(graph, {[`updatemenus[${playbackMenu}].buttons[0].label`]: label});
-        styleControls();
+        await styleControls();
         if (!playing && refine) {
             frame = drawnFrame;
             fetchDetail();
@@ -111,6 +184,7 @@ export async function mount(root, Plotly, request, response, templateJSON) {
         inFlight = true;
         const size = graph._fullLayout._size;
         request.notify({id: revision, frame, coil, component, preview, property, ...range?.query,
+            ...(slices ? {slices:slices.query()} : {}),
             visible: graph.data.map(trace => trace.visible !== false && trace.visible !== 'legendonly'),
             width: size.w, height: size.h, projection: projection(graph, template.dimensions)});
     }
@@ -135,31 +209,14 @@ export async function mount(root, Plotly, request, response, templateJSON) {
         // Only refinement is debounced; previews never wait for the pointer to stop.
         if (!playing && !dragging) timer = setTimeout(() => fetchDetail(), refineDelay);
     }
-    function styleControls() {
-        const propertyGroups = [];
+    async function styleControls() {
+        await stylePlotControls(graph, Plotly, (menu, index) => menu.name === 'motion-playback' ? playing :
+            menu.name === 'phantom-property' ? menu.buttons[index].args[0] === property : index === component - 1);
         graph.querySelectorAll('.updatemenu-header-group').forEach(group => {
             const playback = group.__data__.name === 'motion-playback';
-            const phantom = group.__data__.name === 'phantom-property';
-            if (phantom) propertyGroups.push(group);
-            if (!playback && !phantom && group.__data__.name !== 'coil-component') return;
-            group.querySelectorAll('.updatemenu-button').forEach((button, index) => {
-                button.classList.add('koma-component-button');
-                button.setAttribute('role', 'button');
-                button.setAttribute('aria-pressed', String(playback ? playing : phantom ?
-                    group.__data__.buttons[index].args[0] === property : index === component - 1));
-                if (playback) button.setAttribute('aria-label', playing ? 'Pause motion' : 'Play motion');
-            });
+            if (playback) group.querySelectorAll('.updatemenu-button').forEach(button =>
+                button.setAttribute('aria-label', playing ? 'Pause motion' : 'Play motion'));
         });
-        if (propertyGroups.length) {
-            propertyGroups.forEach(group => group.style.transform = '');
-            const bounds = propertyGroups.map(group => group.getBoundingClientRect());
-            const viewport = graph.getBoundingClientRect();
-            const offset = (viewport.left + viewport.right - bounds[0].left - bounds.at(-1).right) / 2;
-            propertyGroups.forEach(group => group.style.transform = `translateX(${offset}px)`);
-            graph.querySelectorAll('.annotation').forEach(annotation => {
-                if (annotation.textContent === '—') annotation.style.transform = `translateX(${offset}px)`;
-            });
-        }
         graph.querySelectorAll('.slider-group').forEach(group => {
             if (group.__data__.name !== 'time') return;
             const slider = graph.layout.sliders[group.__data__._index];
@@ -174,25 +231,27 @@ export async function mount(root, Plotly, request, response, templateJSON) {
             handle.setAttribute('aria-valuetext', `${slider.steps[slider.active].label} ms`);
         });
     }
-    async function draw(payload) {
-        if (range) {
-            range.update(payload);
-            payload.data[1].marker.showscale = false;
-        }
+    async function draw(payload, rebind = false) {
         const layout = themeLayout(root, structuredClone(template.layout));
         [layout.width, layout.height] = plotSize();
-        layout.uirevision = 'spatial-plot';
+        layout.uirevision = `spatial-plot-${definition.revision}`;
         (layout.sliders ?? []).forEach((slider, i) => {
             // Do not pull a dragging thumb back to an intermediate preview frame.
-            slider.active = slider.name !== 'time' ? coil - 1 :
-                payload.preview && !playing ? (graph.layout?.sliders[i].active ?? frame - 1) :
+            if (slider.name !== 'time' && slider.name !== 'coil') return;
+            slider.active = slider.name === 'coil' ? coil - 1 :
+                payload.preview && !playing ? (graph.layout?.sliders?.find(item => item.name === 'time')?.active ?? frame - 1) :
                 (payload.frame ?? frame) - 1;
         });
-        for (const menu of layout.updatemenus ?? []) menu.active = menu.name === 'phantom-property' ?
-            menu.buttons.findIndex(button => button.args[0] === property) : component - 1;
+        for (const menu of layout.updatemenus ?? []) {
+            if (menu.name === 'phantom-property') menu.active = menu.buttons.findIndex(button => button.args[0] === property);
+            if (menu.name === 'coil-component') menu.active = component - 1;
+        }
+        slices?.applyLayout(layout);
         if (payload.coloraxis) layout.coloraxis = payload.coloraxis;
         const reduced = payload.coarse || payload.shown < payload.available;
-        layout.annotations = [...(layout.annotations ?? []), ...(reduced ? [{
+        const counts = payload.slice_counts ? sliceAnnotations(layout.meta.phantom_slices, payload.slice_counts,
+            layout.sliders.find(slider => slider.name === 'time').steps[(payload.frame ?? frame)-1].label) : [];
+        layout.annotations = [...(layout.annotations ?? []), ...counts, ...(!payload.slice_counts && reduced ? [{
             text: payload.coarse ? 'Coarser grid' : `Downsampled · ${(100 * payload.shown / payload.available).toFixed(2)}%`,
             xref: 'paper', yref: 'paper', x: 1, y: 0, xanchor: 'right', yanchor: 'bottom',
             xshift: -2, yshift: 2, showarrow: false, borderpad: 0, font: {size: 10},
@@ -201,13 +260,18 @@ export async function mount(root, Plotly, request, response, templateJSON) {
                 'visible spins shown. ' +
                 (payload.preview ? 'Motion preview; pause to refine.' : 'Zoom for more detail.')),
         }] : [])];
-        if (!graph._fullLayout) {
+        // Emptying a hidden trace removes its legend entry in Plotly.
+        // Retain its bounded browser data until the user shows it again.
+        identifyTraces(payload.data);
+        if (graph._fullLayout && !rebind) {
+            const old = new Map(graph.data.map(trace => [trace.uid, trace]));
+            payload.data = payload.data.map(trace => old.get(trace.uid)?.visible === 'legendonly' ? old.get(trace.uid) : trace);
+        }
+        if (rebind) {
+            await Plotly.react(graph, payload.data, layout, {...template.config, responsive: true});
+        } else if (!graph._fullLayout) {
             await Plotly.newPlot(graph, payload.data, layout, {...template.config, responsive: true});
         } else {
-            // Emptying a hidden trace removes its legend entry in Plotly.
-            // Retain its bounded browser data until the user shows it again.
-            payload.data = payload.data.map((trace, i) =>
-                graph.data[i].visible === 'legendonly' ? graph.data[i] : trace);
             const data = {}, changes = {};
             const equal = (a, b) => a === b || (Array.isArray(a) && Array.isArray(b) &&
                 a.length === b.length && a.every((value, i) => value === b[i]));
@@ -219,7 +283,7 @@ export async function mount(root, Plotly, request, response, templateJSON) {
                     !equal(trace.marker?.[key], graph.data[i].marker?.[key]) :
                     JSON.stringify(trace.marker?.[key]) !== JSON.stringify(graph.data[i].marker?.[key])))
                     data[`marker.${key}`] = payload.data.map(trace => trace.marker?.[key]);
-            for (const key of ['annotations', 'coloraxis'])
+            for (const key of ['annotations', 'coloraxis', 'shapes'])
                 if (JSON.stringify(layout[key]) !== JSON.stringify(graph.layout[key])) changes[key] = layout[key];
             for (const key of ['sliders', 'updatemenus']) layout[key]?.forEach((control, i) => {
                 if (control.active !== graph.layout[key]?.[i]?.active)
@@ -238,8 +302,7 @@ export async function mount(root, Plotly, request, response, templateJSON) {
             }
         }
         drawnFrame = payload.frame ?? frame;
-        styleControls();
-        range?.theme();
+        await styleControls();
     }
     async function render() {
         if (rendering || disposed || interacting) return;
@@ -248,7 +311,9 @@ export async function mount(root, Plotly, request, response, templateJSON) {
             while (pending && !disposed && !interacting) {
                 const payload = pending;
                 pending = null;
-                if (payload.id === revision) await draw(payload);
+                if (payload.id === revision) {
+                    await draw(payload);
+                }
             }
         } finally {
             rendering = false;
@@ -259,12 +324,13 @@ export async function mount(root, Plotly, request, response, templateJSON) {
     const theme = observeTheme(graph, Plotly);
     await draw(initial);
     if (!root.isConnected) { Plotly.purge(graph); return; }
+    slices = mountSlices(graph, Plotly, fetchPreview);
     response.on(serialized => {
         if (disposed) return false;
         inFlight = false;
         const payload = JSON.parse(serialized);
         if (payload.id === revision) pending = payload;
-        render().catch(error => Bonito.send_error('Spatial plot update failed', error));
+        if (!rendering) renderTask = render().catch(error => console.error('Spatial plot update failed', error));
     });
     function refreshView() {
         cancelAnimationFrame(cameraFrame);
@@ -277,12 +343,12 @@ export async function mount(root, Plotly, request, response, templateJSON) {
             } else fetchDetail();
         });
     }
-    graph.on('plotly_relayout', event => {
-        if ((!rendering || interacting) && Object.keys(event).some(key => /^(scene\.|[xy]axis\.)/.test(key))) {
+    graph.on('plotly_relayout', async event => {
+        if ((!rendering || interacting) && Object.keys(event).some(key => /^(scene\.|[xy]axis\d*\.)/.test(key))) {
+            await resetSpatialAxes(graph, Plotly, event);
             refreshView();
         }
     });
-    if (range) graph.on('plotly_afterplot', () => range.theme());
     graph.addEventListener('wheel', event => {
         if (!event.target.closest('.gl-container, .nsewdrag')) return;
         beginInteraction();
@@ -297,7 +363,7 @@ export async function mount(root, Plotly, request, response, templateJSON) {
             frame = Number(event.step.value);
             fetchPreview();
         }
-        else { coil = Number(event.step.value); fetchDetail(); }
+        else if (event.slider.name === 'coil') { coil = Number(event.step.value); fetchDetail(); }
     });
     graph.on('plotly_sliderstart', event => {
         if (event.slider.name !== 'time') return;
@@ -332,7 +398,8 @@ export async function mount(root, Plotly, request, response, templateJSON) {
         if (event.button.name === 'phantom-property') {
             property = event.button.args[0];
             revision++;
-        } else component = event.button.args[0];
+        } else if (event.button.name === 'coil-component') component = event.button.args[0];
+        else return;
         styleControls();
         if (playing) fetchPreview();
         else fetchDetail();
@@ -368,8 +435,8 @@ export async function mount(root, Plotly, request, response, templateJSON) {
         const next = plotSize();
         if (next.every((value, i) => Math.abs(value - size[i]) < 2)) return;
         size = next;
-        Plotly.relayout(graph, {width: next[0], height: next[1]}).then(() => {
-            styleControls();
+        Plotly.relayout(graph, {width: next[0], height: next[1]}).then(async () => {
+            await styleControls();
             playing ? fetchPreview() : fetchDetail();
         });
     });
@@ -384,6 +451,8 @@ export async function mount(root, Plotly, request, response, templateJSON) {
         resize.disconnect();
         removal.disconnect();
         theme.disconnect();
+        range?.dispose();
+        slices?.dispose();
         document.removeEventListener('pointerup', finishInteraction, true);
         document.removeEventListener('pointercancel', finishInteraction, true);
         if (!rendering) Plotly.purge(graph);
@@ -392,4 +461,45 @@ export async function mount(root, Plotly, request, response, templateJSON) {
     resize.observe(root);
     if (range) resize.observe(graph);
     fetchDetail();
+    return {graph, async rebind(initialJSON, templateJSON) {
+        revision++;
+        pending = null;
+        wanted = false;
+        clearTimeout(timer); clearTimeout(playTimer); clearTimeout(cameraTimer);
+        cancelAnimationFrame(cameraFrame);
+        playing = dragging = interacting = false;
+        await renderTask;
+        const next = JSON.parse(initialJSON);
+        template = JSON.parse(templateJSON);
+        for (const menu of graph.layout.updatemenus ?? []) {
+            if (menu.name === 'phantom-property')
+                menu.active = menu.buttons.findIndex(button => button.args[0] === property);
+            if (menu.name === 'coil-component') menu.active = component - 1;
+        }
+        for (const slider of graph.layout.sliders ?? [])
+            if (slider.name === 'time' || slider.name === 'coil') slider.active = (slider.name === 'time' ? frame : coil) - 1;
+        definition = reconcilePlot(graph, next.data, template.layout, definition);
+        property = template.layout.updatemenus?.filter(menu => menu.name === 'phantom-property')
+            .map(menu => menu.buttons[menu.active ?? 0]?.args[0]).find(value => value !== undefined) ?? next.property;
+        next.property = property;
+        const menus = template.layout.updatemenus ?? [];
+        component = (menus.find(menu => menu.name === 'coil-component')?.active ?? 0) + 1;
+        coil = (template.layout.sliders?.find(slider => slider.name === 'coil')?.active ?? 0) + 1;
+        frame = (template.layout.sliders?.find(slider => slider.name === 'time')?.active ?? 0) + 1;
+        playbackControls();
+        if (slices && template.layout.meta?.phantom_slices) await slices.rebind(template.layout.meta.phantom_slices);
+        else { slices?.dispose(); slices = null; }
+        if (range && template.kspace) range.rebind(template.kspace);
+        else {
+            range?.dispose();
+            graph.style.cssText = 'width:100%;height:100%';
+            range = template.kspace ? mountKspaceRange(root, graph, template.kspace, fetchDetail) : null;
+        }
+        inFlight = false;
+        rendering = true;
+        try { await draw(next, true); }
+        finally { rendering = false; }
+        slices ??= mountSlices(graph, Plotly, fetchPreview);
+        fetchDetail();
+    }};
 }

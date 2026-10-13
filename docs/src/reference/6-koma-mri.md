@@ -26,7 +26,7 @@ ui_actions
 
 ### Window data
 
-Each window owns its data and options:
+Each window owns its data and parameters:
 
 ```julia
 w.seq[] = seq        # Sequence
@@ -44,7 +44,7 @@ In-place edits require `notify(observable)` to refresh the view. Simulation,
 reconstruction, and export read the current values.
 
 The `:recon_policy` entry in `w.rec_params[]` controls label handling and coil
-combination, e.g. `(COIL=:rss,)`. It is displayed with the reconstruction options
+combination, e.g. `(COIL=:rss,)`. It is displayed with the reconstruction parameters
 and applied by `reconstruct!`.
 
 Sequence assignment resets the physiological signal to its default. Scanner updates

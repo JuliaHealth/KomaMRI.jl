@@ -14,7 +14,10 @@ include("ui/SequencePlotSource.jl")
 include("ui/TimePlots.jl")
 include("ui/CoilSensitivities.jl")
 include("ui/SpatialPlots.jl")
+include("ui/PhantomSlices.jl")
+include("ui/ImageSlices.jl")
 include("ui/KspaceSpatialPlot.jl")
+include("ui/PlutoDisplay.jl")
 
 """Save a Plotly figure, starting Kaleido when needed."""
 function savefig(args...; kwargs...)
@@ -32,6 +35,7 @@ export plot_seq,
     plot_kspace,
     plot_phantom_map,
     plot_phantom,
+    plot_phantom_slice,
     plot_coil_sens,
     get_coil_sens_fov,
     plot_signal,

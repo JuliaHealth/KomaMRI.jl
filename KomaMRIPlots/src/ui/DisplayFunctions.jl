@@ -15,13 +15,13 @@ Define colors for dark or light mode.
 """
 function theme_chooser(darkmode)
     if darkmode
-        bgcolor = "rgba(0,0,0,0)"#"rgb(13,16,17)"
+        bgcolor = "rgb(13,16,17)"
         text_color = "gray"
         plot_bgcolor = "rgb(22,26,29)" #"rgb(33,37,41)"
         grid_color = "rgb(40,52,66)" #rgb(40,40,40)
         sep_color = "white"
     else
-        bgcolor = "rgba(0,0,0,0)"#"white"
+        bgcolor = "white"
         text_color = "gray"#"rgb(49,70,101)"
         plot_bgcolor = "rgb(229,236,246)"
         grid_color = "white"
@@ -84,7 +84,7 @@ function generate_seq_time_layout_config(
             color=text_color,
             activecolor=plot_bgcolor,
         ),
-        legend=attr(; orientation="h", yanchor="bottom", xanchor="left", y=1, x=0),
+        legend=attr(; orientation="h", yref="container", yanchor="top", xanchor="left", y=1, x=0),
         updatemenus=isempty(label_to_show) ? [] : [
             attr(
                 type="dropdown",
@@ -599,7 +599,7 @@ function plot_M0_nonadaptive(
     seq::Sequence;
     width=nothing,
     height=nothing,
-    slider=true,
+    slider=false,
     show_seq_blocks=false,
     darkmode=false,
     range=[],
@@ -657,7 +657,7 @@ function plot_M1_nonadaptive(
     seq::Sequence;
     width=nothing,
     height=nothing,
-    slider=true,
+    slider=false,
     show_seq_blocks=false,
     darkmode=false,
     range=[],
@@ -715,7 +715,7 @@ function plot_M2_nonadaptive(
     seq::Sequence;
     width=nothing,
     height=nothing,
-    slider=true,
+    slider=false,
     show_seq_blocks=false,
     darkmode=false,
     range=[],
@@ -775,7 +775,7 @@ function plot_eddy_currents_nonadaptive(
     α=ones(size(λ)),
     width=nothing,
     height=nothing,
-    slider=true,
+    slider=false,
     show_seq_blocks=false,
     darkmode=false,
     range=[],
@@ -829,7 +829,7 @@ function plot_slew_rate_nonadaptive(
     seq::Sequence;
     width=nothing,
     height=nothing,
-    slider=true,
+    slider=false,
     show_seq_blocks=false,
     darkmode=false,
     range=[],
@@ -884,11 +884,12 @@ end
 """
     p = plot_image(image; height, width, zmin, zmax, darkmode, title)
 
-Plot real image values directly. Complex images initially show magnitude and include
+Plot real image values directly. Volumes show linked x–y, z–y and x–z planes.
+Complex images initially show magnitude and include
 Magnitude/Phase buttons below the plot. Single-column images are shown as line profiles.
 
 # Arguments
-- `image`: a real or complex image matrix
+- `image`: a real or complex image matrix or volume
 
 # Keywords
 - `width`: (`::Integer`, `=nothing`) plot width
@@ -898,6 +899,9 @@ Magnitude/Phase buttons below the plot. Single-column images are shown as line p
   phase uses a cyclic scale over `[-π, π]` radians
 - `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
 - `title`: (`::String`, `=""`) plot title
+- `spacing=(1,1,1)`: voxel spacing for volumes; axes display voxel indices
+
+Middle-button drag adjusts window width horizontally and level vertically. Double-click resets window and zoom; phase keeps its fixed scale.
 
 # Returns
 - `p`: (`::PlotlyBase.Plot`) plot of the image matrix
@@ -947,7 +951,8 @@ function plot_image(
         l[:margin] = attr(; t=50, l=60, r=20, b=50)
         scatter(; x=0:(length(image) - 1), y=vec(image), mode="lines", line_color="#2a7fb8")
     else
-        heatmap(; z=image, transpose=false, zmin=zmin, zmax=zmax, colorscale=colorscale)
+        heatmap(; z=collect(eachcol(image)), transpose=false, zmin=zmin, zmax=zmax,
+            meta=Dict(:image_window=>[zmin,zmax]), colorscale=colorscale, hoverinfo="x+y+z")
     end
     config = PlotConfig(;
         displaylogo=false,
@@ -965,45 +970,59 @@ function plot_image(
             "zoomOut",
         ],
     )
-    return PlotlyBase.Plot(p, l; config)
+    return pluto_plot(PlotlyBase.Plot(p, l; config))
 end
 
 function plot_image(image::AbstractArray{<:Complex}; kwargs...)
     magnitude = plot_image(abs.(image); kwargs...)
-    phase = plot_image(angle.(image); kwargs..., zmin=-π, zmax=π, colorscale=PHASE_COLORSCALE)
-    profile = size(image, 2) == 1
+    phase_limit = Float64(π)
+    phase = plot_image(angle.(image); kwargs..., zmin=-phase_limit, zmax=phase_limit, colorscale=PHASE_COLORSCALE)
+    profile = ndims(image) < 3 && size(image, 2) == 1
     if profile
         lower, upper = magnitude.layout[:yaxis][:range]
         magnitude.layout[:yaxis][:range] = [lower, 1.1 * upper]
         phase.layout[:yaxis][:title] = "Phase (rad)"
     else
-        phase.data[1][:colorbar] = attr(; title=attr(; text="rad"),
-            tickvals=[-π, -π/2, 0, π/2, π], ticktext=["−π", "−π/2", "0", "π/2", "π"])
+        for trace in phase.data
+            delete!(trace.fields, :meta)
+            colorbar = get!(trace.fields,:colorbar,attr())
+            colorbar[:title] = attr(; text="rad")
+            colorbar[:tickvals] = [-phase_limit,-phase_limit/2,0,phase_limit/2,phase_limit]
+            colorbar[:ticktext] = ["−π","−π/2","0","π/2","π"]
+        end
     end
     components = (magnitude, phase)
-    traces = [only(component.data) for component in components]
+    traces = reduce(vcat, [component.data for component in components])
+    count = length(magnitude.data)
     for (index, trace) in enumerate(traces)
-        trace[:visible] = index == 1
+        trace[:visible] = index <= count
     end
     layout = magnitude.layout
+    if haskey(get(layout,:meta,Dict()),"image_slices")
+        model = layout[:meta]["image_slices"]
+        layout[:meta]["image_slices"] = (; model...,values=[model.values;phase.layout[:meta]["image_slices"].values])
+        for (index,trace) in enumerate(traces)
+            trace[:uid] = "image-component-$index"
+        end
+    end
     layout[:showlegend] = false
     layout[:margin][:b] = 100
     layout[:updatemenus] = [attr(;
         name="image-component", type="buttons", direction="right",
         x=0.5, xanchor="center", y=0, yanchor="top", pad=attr(; t=50),
-        bgcolor="#2a7fb8", bordercolor="#2a7fb8", font=attr(; color="#111111"),
+        bgcolor="#2a7fb8", bordercolor="#2a7fb8", font=attr(; color="white"),
         showactive=true, active=0,
         buttons=[attr(; label, method="update", args=[
-            attr(; visible=[index == 1, index == 2]),
+            attr(; visible=[fill(index == 1,count); fill(index == 2,count)]),
             profile ? Dict("yaxis.range" => components[index].layout[:yaxis][:range],
                 "yaxis.title" => components[index].layout[:yaxis][:title]) : attr(),
         ]) for (index, label) in enumerate(("Magnitude", "Phase"))],
     )]
-    return PlotlyBase.Plot(traces, layout; config=magnitude.config)
+    return pluto_plot(PlotlyBase.Plot(traces, layout; config=magnitude.config))
 end
 
 """
-    p = plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=false, view_2d=false, adaptive=false, physio=NoPhysioSignal())
+    p = plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=false, view_2d=false, adaptive=false, adaptive_navigator=false, physio=NoPhysioSignal())
 
 Plots the k-space of a Sequence struct.
 
@@ -1018,12 +1037,13 @@ Plots the k-space of a Sequence struct.
 - `physio=NoPhysioSignal()`: physiological signal used to resolve trigger waits and ADC times
 - `adaptive=false`: use an experimental live `SpatialPlot` when true. Julia retains
   the full trajectory; zoom/rotation fetch bounded sets of original segments and ADCs.
-  Bottom range controls filter by zero-based ADC sample order or time in milliseconds
-  before viewport undersampling. The colormap range slider replaces the colorbar;
-  ADC colors retain their global acquisition order.
+- `adaptive_navigator=false`: show a compact adaptive sequence navigator when true, without
+  a legend or secondary slider. Zoom its time axis to filter k-space after dragging
+  stops; colors retain their global ADC sample count. The sequence navigator requires a running Julia
+  session in both k-space modes.
 
 # Returns
-- `p`: self-contained `PlotlyBase.Plot`, or live `SpatialPlot` with `adaptive=true`.
+- `p`: `PlotlyBase.Plot` with `adaptive=false`, or live `SpatialPlot` otherwise.
   Adaptive updates require the Julia session to remain running.
 
 # Examples
@@ -1036,13 +1056,13 @@ julia> plot_kspace(seq)
 ```
 """
 function plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=false, view_2d=false,
-    adaptive=false, physio=NoPhysioSignal())
+    adaptive=false, adaptive_navigator=false, physio=NoPhysioSignal())
     seq = resolve_triggers(seq, physio)
-    adaptive && return kspace_spatial_plot(seq; width, height, darkmode, view_2d)
+    (adaptive || adaptive_navigator) && return kspace_spatial_plot(seq; width, height, darkmode, view_2d, adaptive, adaptive_navigator)
     #Calculations of theoretical k-space
     kspace, kspace_adc = get_kspace(seq; sampling_rule=KomaMRIBase.MaxStepSizeRule(1, 5e-5))
     t_adc = KomaMRIBase.get_adc_sampling_times(seq)
-    return kspace_plot(kspace, kspace_adc, t_adc, length(t_adc); width, height, darkmode, view_2d)
+    return pluto_plot(kspace_plot(kspace, kspace_adc, t_adc, length(t_adc); width, height, darkmode, view_2d))
 end
 
 function kspace_plot(kspace, kspace_adc, t_adc, num_adc; width, height, darkmode, view_2d)
@@ -1064,7 +1084,7 @@ function kspace_plot(kspace, kspace_adc, t_adc, num_adc; width, height, darkmode
         color=text_color,
         activecolor=plot_bgcolor,
     )
-    legend = attr(; orientation="h", yanchor="bottom", xanchor="left", y=1, x=0)
+    legend = attr(; orientation="h", yref="container", yanchor="top", xanchor="left", y=1, x=0)
     if view_2d
         l = Layout(;
             paper_bgcolor=bgcolor,
@@ -1104,7 +1124,7 @@ function kspace_plot(kspace, kspace_adc, t_adc, num_adc; width, height, darkmode
                 mode="markers",
                 marker=attr(; size=4),
                 name="ADC",
-                hovertemplate="kx: %{x:.1f} m⁻¹<br>ky: %{y:.1f} m⁻¹<br><b>t_acq</b>: %{text} ms<extra></extra>",
+                hovertemplate="ADC count: %{marker.color}<br>kx: %{x:.1f} m⁻¹<br>ky: %{y:.1f} m⁻¹<br><b>t_acq</b>: %{text} ms<extra></extra>",
             ),
             scattergl(;
                 x=[0], y=[0], mode="markers", name="k=0",
@@ -1164,7 +1184,7 @@ function kspace_plot(kspace, kspace_adc, t_adc, num_adc; width, height, darkmode
                 mode="markers",
                 marker=attr(; size=2),
                 name="ADC",
-                hovertemplate="kx: %{x:.1f} m⁻¹<br>ky: %{y:.1f} m⁻¹<br>kz: %{z:.1f} m⁻¹<br><b>t_acq</b>: %{text} ms<extra></extra>",
+                hovertemplate="ADC count: %{marker.color}<br>kx: %{x:.1f} m⁻¹<br>ky: %{y:.1f} m⁻¹<br>kz: %{z:.1f} m⁻¹<br><b>t_acq</b>: %{text} ms<extra></extra>",
             ),
             scatter3d(;
                 x=[0], y=[0], z=[0], mode="markers", name="k=0",
@@ -1185,7 +1205,7 @@ function kspace_plot(kspace, kspace_adc, t_adc, num_adc; width, height, darkmode
     p[2][:marker][:cmin] = 0
     p[2][:marker][:cmax] = max(num_adc - 1, 1)
     p[2][:marker][:showscale] = true
-    p[2][:marker][:colorbar] = attr(; title=attr(; text="ADC order", side="right"), thickness=12, len=0.6,
+    p[2][:marker][:colorbar] = attr(; title=attr(; text="ADC count", side="right"), thickness=12, len=0.6,
         tickformat="~s", outlinewidth=0)
     if height !== nothing
         l.height = height
@@ -1264,7 +1284,7 @@ function plot_signal_nonadaptive(
     raw::RawAcquisitionData;
     width=nothing,
     height=nothing,
-    slider=true,
+    slider=false,
     show_sim_blocks=false,
     darkmode=false,
     range=[],
@@ -1359,7 +1379,7 @@ function plot_signal_nonadaptive(
             color=text_color,
             activecolor=plot_bgcolor,
         ),
-        legend=attr(; orientation="h", yanchor="bottom", xanchor="left", y=1, x=0),
+        legend=attr(; orientation="h", yref="container", yanchor="top", xanchor="left", y=1, x=0),
         plot_bgcolor=plot_bgcolor,
         paper_bgcolor=bgcolor,
         xaxis_gridcolor=grid_color,

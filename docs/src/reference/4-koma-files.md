@@ -99,10 +99,17 @@ repetitions = s.sequence.adc.labels.REP;
 
 `reconstruction.policy` records the reconstruction policy. Each cell in
 `reconstruction.images` contains one reconstruction batch with `data`, `size`, `labels`,
-and `source`. `labels` identifies the batch; `source` retains its original
+`source`, `axes_mm`, `voxel_spacing_mm`, and `trajectory_scale`.
+`labels` identifies the batch; `source` retains its original
 acquisition counters. The six data dimensions are **x, y, z, echo, coil, repetition**.
 The explicit six-element `size` vector preserves trailing singleton dimensions that
 MATLAB does not display.
+
+`axes_mm.x`, `.y`, and `.z` contain the reconstructed physical coordinates in millimetres,
+including any FOV correction. `voxel_spacing_mm` preserves x/y/z spacing even on
+singleton axes. `trajectory_scale` records the k-space rescaling factor
+(1 when no rescaling was needed). Use these coordinates rather than inferring geometry
+from the array size or the original sequence definitions.
 
 ```matlab
 s = load('data_image.mat');
@@ -111,9 +118,10 @@ I = reshape(batch.data, batch.size(:).');
 echo = 1; coil = 1; repetition = 1; z = 1;
 plane = I(:, :, z, echo, coil, repetition);
 if batch.size(2) == 1 && batch.size(3) == 1
-    plot(abs(plane(:, 1)));       % 1D reconstruction
+    plot(batch.axes_mm.x, abs(plane(:, 1))); xlabel('x (mm)');
 else
-    imagesc(abs(plane)); axis image; % 2D image or one plane of a 3D volume
+    imagesc(batch.axes_mm.y, batch.axes_mm.x, abs(plane)); axis image;
+    xlabel('y (mm)'); ylabel('x (mm)');
 end
 volume = I(:, :, :, echo, coil, repetition);
 ```

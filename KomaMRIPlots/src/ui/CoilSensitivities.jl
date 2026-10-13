@@ -88,7 +88,7 @@ function plot_coil_sens(sys; fov=nothing, spacing=0.01, height=700, width=nothin
     background, text, plot_background, grid_color, _ = theme_chooser(darkmode)
     magnitude_scale = attr(; cmin=0, cmax, colorscale="Greys",
         colorbar=attr(; title=attr(; text="|S|"), thickness=16))
-    phase_scale = attr(; cmin=-π, cmax=π, colorscale=PHASE_COLORSCALE,
+    phase_scale = attr(; cmin=-Float64(π), cmax=Float64(π), colorscale=PHASE_COLORSCALE,
         colorbar=attr(; title=attr(; text="rad"), thickness=16,
             tickvals=[-π, -π/2, 0, π/2, π], ticktext=["−π", "−π/2", "0", "π/2", "π"]))
     hover = view_2d ?
@@ -101,7 +101,7 @@ function plot_coil_sens(sys; fov=nothing, spacing=0.01, height=700, width=nothin
             (view_2d ? (;) : (; z=coordinates[3]))...,
             mode="markers", visible=coil == 1, showlegend=false, name="Coil $coil",
             marker=attr(; size=view_2d ? 4 : 2, color=magnitude[coil], coloraxis="coloraxis"),
-            hovertemplate=hover * "|S|: %{marker.color:.3g}<extra>%{fullData.name}</extra>",
+            hovertemplate=hover * "|S|: %{marker.color:.3g}<extra></extra>",
         ) for coil in eachindex(magnitude)
     ]
     extent = max(spacing * 100, maximum(bound -> maximum(abs, bound), bounds) * 100)
@@ -125,11 +125,11 @@ function plot_coil_sens(sys; fov=nothing, spacing=0.01, height=700, width=nothin
         updatemenus=[attr(;
             name="coil-component", type="buttons", direction="right",
             x=0.5, xanchor="center", y=0, yanchor="top", pad=attr(; t=30),
-            bgcolor="#2a7fb8", bordercolor="#2a7fb8", font=attr(; color="#111111"),
+            bgcolor="#2a7fb8", bordercolor="#2a7fb8", font=attr(; color="white"),
             showactive=true, active=0,
             buttons=[attr(; label, method=adaptive ? "skip" : "update", args=adaptive ? [component] : [
                 Dict("marker.color" => values, "hovertemplate" => hover * value_label *
-                    ": %{marker.color:.3g}<extra>%{fullData.name}</extra>"),
+                    ": %{marker.color:.3g}<extra></extra>"),
                 attr(; coloraxis=scale),
             ]) for (component, (label, value_label, values, scale)) in enumerate((
                 ("Magnitude", "|S|", magnitude, magnitude_scale),
@@ -152,5 +152,5 @@ function plot_coil_sens(sys; fov=nothing, spacing=0.01, height=700, width=nothin
         modeBarButtonsToRemove=["zoom", "pan", "resetCameraLastSave3d", "orbitRotation", "resetCameraDefault3d"])
     plot = PlotlyBase.Plot(traces, layout; config)
     return adaptive ? SpatialPlot(CoilSpatialSource(receiver, grid), plot,
-        view_2d ? displayed : [1, 2, 3]) : plot
+        view_2d ? displayed : [1, 2, 3]) : pluto_plot(plot)
 end

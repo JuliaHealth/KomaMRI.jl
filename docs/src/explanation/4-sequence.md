@@ -5,9 +5,8 @@ This section delves into some details about how a sequence is constructed. The s
 ## KomaMRI Sequence Overview
 
 Let's introduce the following simple sequence figure to expand from a visual example to a more general sequence definition:
-```@raw html
-<p align="center"><img width="80%" src="../assets/sequence-diagram.svg"/></p>
-```
+
+![](../assets/sequence-diagram.svg){style="width:80%"}
 
 A **sequence** can be thought of as an ordered concatenation of blocks over time. Each block is essentially a sequence with a length of 1. Every block consists of an **RF** pulse, the ``(x,y,z)`` **gradients**, and the **acquisition** of samples. Each block also has an associated time **duration**. To simplify, we will refer to these components as follows:
 

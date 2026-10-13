@@ -123,7 +123,8 @@ function run_reconstruction!(w, rec_params; initial=false)
             <ul class="list-unstyled mb-0"><li><button type="button" class="btn koma-toast-action btn-circle btn-circle-sm m-1" title="View reconstruction" aria-label="View reconstruction" onclick="KomaUI.notify('view_image')"><i class="bi bi-search"></i></button> Updating <b>Reconstruction</b> plots ...</li></ul>
         """
         rec_time = round(reconstruction_result.time; digits=3)
-        warning = reconstruction_geometry_warning(w.raw[])
+        warning = join(filter(!isempty, [reconstruction_geometry_warning(w.raw[]),
+            reconstruction_geometry_warning(reconstruction_result.value)]), "\n")
         w.operation[] = UIOperation(; action=:reconstruct, state=:running, message=warning)
         isempty(warning) || (body = "<p style=\"white-space: pre-line;\">$(html_escape(warning))</p>" * body)
         toast!(w, 2, "Reconstruction successful<br>Time: $rec_time s", body;

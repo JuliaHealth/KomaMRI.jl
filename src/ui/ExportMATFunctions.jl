@@ -104,6 +104,11 @@ function _image_export(reconstruction::ReconstructionResult)
             "size" => collect(size(entry.image)),
             "labels" => _mat_value(entry.labels),
             "source" => _mat_value(entry.source),
+            "axes_mm" => Dict(string(name) => collect(MRIReco.Unitful.ustrip.(MRIReco.Unitful.mm, axis.val))
+                for (name, axis) in zip((:x, :y, :z), AxisArrays.axes(entry.image)[1:3])),
+            "voxel_spacing_mm" => [MRIReco.Unitful.ustrip(MRIReco.Unitful.mm, step(axis.val))
+                for axis in AxisArrays.axes(entry.image)[1:3]],
+            "trajectory_scale" => get(entry, :trajectory_scale, 1),
         ) for entry in reconstruction.images
     ]
     return Dict("reconstruction" => Dict("policy" => _mat_value(reconstruction.policy), "images" => images))

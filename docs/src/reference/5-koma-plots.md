@@ -4,12 +4,22 @@
 CurrentModule = KomaMRIPlots
 ```
 
+Plots display directly in Pluto without an extra wrapper or plotting dependency.
+Reruns preserve valid zoom, camera and legend selections.
+Nonadaptive plots keep their `PlotlyBase.Plot` return type and Plotly mutation/export APIs.
+
+Adaptive plots require live Julia in REPL, Pluto, Jupyter, Quarto, and KomaUI.
+Nonadaptive figures work offline unless `adaptive_navigator=true` adds a live
+sequence panel to k-space. For Quarto live views, keep the Julia worker running
+with `execute.daemon`.
+
 ## Plotting `Phantom`
 
 ```@docs
 plot_phantom_map
 SpatialPlot
 plot_phantom
+plot_phantom_slice
 ```
 
 ## Plotting receive sensitivities

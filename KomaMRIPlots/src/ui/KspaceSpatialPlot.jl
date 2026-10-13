@@ -1,13 +1,15 @@
 const KSPACE_DISPLAY_BUDGET = 256 * 256
+const KSPACE_NAVIGATOR_HEIGHT = 120
 
-struct KspaceSpatialSource{K,A,T,S}
+struct KspaceSpatialSource{K,A,T,S,O}
     trajectory::K
     adc::A
     times::T
     trajectory_times::S
+    overview::O
 end
 
-function kspace_spatial_plot(seq; width, height, darkmode, view_2d)
+function kspace_spatial_plot(seq; width, height, darkmode, view_2d, adaptive=true, adaptive_navigator=false)
     sampled = discretize(seq; sampling_rule=KomaMRIBase.MomentSamplingRule(KomaMRIBase.MaxStepSizeRule(1, 5e-5)))
     rf_idx, rf_types = KomaMRIBase.get_RF_types(seq, sampled.t[1:end-1])
     trajectory, adc = get_kspace(sampled; rf_idx, rf_types)
@@ -15,19 +17,67 @@ function kspace_spatial_plot(seq; width, height, darkmode, view_2d)
     extent = isempty(adc) ? trajectory : adc
     bounds = [minimum(extent; dims=1); maximum(extent; dims=1)]
     all(iszero, bounds[2, :] - bounds[1, :]) && (bounds .+= [-1; 1])
-    template = kspace_plot(bounds, bounds, zeros(2), length(times);
+    template = kspace_plot(adaptive ? bounds : trajectory, adaptive ? bounds : adc,
+        adaptive ? zeros(2) : times, length(times);
         width, height, darkmode, view_2d)
-    for trace in template.data[1:2], axis in (:x, :y, :z)
-        haskey(trace, axis) && (trace[axis] = Float64[])
+    if adaptive
+        for trace in template.data[1:2], axis in (:x, :y, :z)
+            haskey(trace, axis) && (trace[axis] = Float64[])
+        end
+        template.data[2][:text] = Float64[]
+        template.data[2][:marker][:color] = Float64[]
     end
-    template.data[2][:text] = Float64[]
-    template.data[2][:marker][:color] = Float64[]
-    return SpatialPlot(KspaceSpatialSource(trajectory, adc, times, sampled.t[2:end]), template,
-        view_2d ? [1, 2] : [1, 2, 3])
+    navigator = if adaptive_navigator
+        plot = plot_seq(seq; adaptive=true, slider=false, height=KSPACE_NAVIGATOR_HEIGHT,
+            range=[0.0, dur(seq) * 1e3], darkmode)
+        layout = plot_template(plot.source).layout
+        layout[:showlegend] = false
+        layout[:updatemenus] = []
+        layout[:yaxis][:fixedrange] = true
+        plot
+    else
+        nothing
+    end
+    source = KspaceSpatialSource(trajectory, adc, times, sampled.t[2:end], navigator)
+    return adaptive ? SpatialPlot(source, template, view_2d ? [1, 2] : [1, 2, 3]) : pluto_plot(template, source)
 end
 
-spatial_controls(source::KspaceSpatialSource) = isempty(source.times) ? nothing :
-    (; adc_count=length(source.times), time_max=last(source.trajectory_times) * 1e3)
+spatial_controls(source::KspaceSpatialSource) = isnothing(source.overview) ? nothing :
+    (; time_max=last(source.trajectory_times) * 1e3)
+
+function spatial_navigator(source::KspaceSpatialSource)
+    isnothing(source.overview) && return nothing
+    height = get(plot_template(source.overview.source).layout, :height, 280)
+    return Bonito.DOM.div(source.overview;
+        style="width:100%;height:$(height)px;max-height:45%;flex:none;min-height:0;")
+end
+
+struct KspacePlot{S,P}
+    source::S
+    plot::P
+end
+
+kspace_controls(plot::KspacePlot) = (; spatial_controls(plot.source)...,
+    times=(; trajectory=plot.source.trajectory_times .* 1e3, adc=plot.source.times .* 1e3))
+
+Base.show(io::IO, ::MIME"text/plain", ::KspacePlot) = print(io, "KspacePlot (live sequence navigator; display as HTML)")
+
+function Bonito.jsrender(session::Bonito.Session, plot::KspacePlot)
+    width, height = get(plot.plot.layout, :width, nothing), get(plot.plot.layout, :height, nothing)
+    style = "width:$(isnothing(width) ? "100%" : "$(width)px");height:$(isnothing(height) ? "600px" : "$(height)px");min-height:$(isnothing(height) ? 300 : 0)px;"
+    root = Bonito.DOM.div(TIME_PLOTLY, SPATIAL_PLOT_JS, spatial_navigator(plot.source);
+        style, dataLinkedTimePlots=true)
+    figure, controls = PlotlyBase.JSON.json(plot.plot), PlotlyBase.JSON.json(kspace_controls(plot))
+    Bonito.onload(session, root, js"""async root => {
+        const [Plotly, viewer] = await Promise.all([$(TIME_PLOTLY), $(SPATIAL_PLOT_JS)]);
+        const graph = document.createElement('div');
+        root.prepend(graph);
+        const figure = JSON.parse($(figure));
+        await Plotly.newPlot(graph, figure.data, figure.layout, figure.config);
+        viewer.mountKspace(root, graph, Plotly, JSON.parse($(controls)));
+    }""")
+    return Bonito.jsrender(session, root)
+end
 
 function kspace_selection(source, query)
     adc = eachindex(source.times)
@@ -35,15 +85,9 @@ function kspace_selection(source, query)
     if haskey(query, "time_range")
         interval = Float64.(query["time_range"]) ./ 1e3
         adc = searchsortedfirst(source.times, first(interval)):searchsortedlast(source.times, last(interval))
-    elseif haskey(query, "adc_range") && !isempty(adc)
-        lower, upper = clamp.(Int.(query["adc_range"]) .+ 1, first(adc), last(adc))
-        adc = lower:upper
-        if lower != 1 || upper != length(source.times)
-            interval = (source.times[lower], source.times[upper])
-        end
     end
     vertices = searchsortedfirst(source.trajectory_times, first(interval)):searchsortedlast(source.trajectory_times, last(interval))
-    return adc, first(vertices):last(vertices)-1, interval
+    return adc, first(vertices):last(vertices)-1
 end
 
 # Clip a projected segment, including crossings with both endpoints outside the view.
@@ -93,7 +137,7 @@ function spatial_data(plot::SpatialPlot{<:KspaceSpatialSource}, query)
     width, height = max(1.0, Float64(query["width"])), max(1.0, Float64(query["height"]))
     budget = clamp(floor(Int, width * height / SPATIAL_PIXEL_SIZE^2), 1, KSPACE_DISPLAY_BUDGET)
     visible = get(query, "visible", [true, true, true])
-    selected_adc, selected_segments, interval = kspace_selection(source, query)
+    selected_adc, selected_segments = kspace_selection(source, query)
     segments, available_segments = visible[1] ?
         kspace_segments(source.trajectory, matrix, width, height, budget; selection=selected_segments) : (Int[], 0)
     adc_budget = length(plot.dimensions) == 2 ? max(1, budget ÷ 2) : budget
@@ -123,7 +167,6 @@ function spatial_data(plot::SpatialPlot{<:KspaceSpatialSource}, query)
     available = available_segments + available_adc
     trajectory_detail = visible[1] ? "$(length(segments)) / $available_segments visible segments" : "hidden"
     adc_detail = visible[2] ? "$(length(ids)) / $available_adc visible samples" : "hidden"
-    return (; data, shown, available, coarse=false, selected_adc=length(selected_adc),
-        filter_ranges=(; adc=[first(selected_adc)-1, last(selected_adc)-1], time=collect(interval) .* 1e3),
+    return (; data, shown, available, coarse=false,
         detail="Trajectory: $trajectory_detail; ADC: $adc_detail.")
 end

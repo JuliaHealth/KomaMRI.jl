@@ -49,6 +49,7 @@
       </a>
       <ul class="dropdown-menu file-dropdown-menu shadow" aria-labelledby="pha-dropdown">
           <li><a id="button_phantom" class="dropdown-item" href="#" onclick='KomaUI.notify("view_phantom")'>View phantom</a></li>
+          <li><a id="button_phantom_slice" class="dropdown-item" href="#" onclick='KomaUI.notify("view_phantom_slice")'>View phantom slices</a></li>
           <li><hr class="dropdown-divider"></li>
           <li class="dropdown-interact">
             <div class="filepicker-row">
@@ -86,15 +87,7 @@
     <hr class="koma-sidebar-divider">
     <!-- SIMULATE -->
     <li class="nav-item">
-      <div class="btn-group btn-group-sm d-flex">
-        <button type="button" class="btn btn-primary w-100 koma-action-button" id="simulate!" onclick='this.disabled=true; KomaUI.notify("simulate")' aria-label="Simulate" title="Simulate"><span class="koma-action-icon icon-flask" aria-hidden="true"></span><span class="koma-action-label">Simulate!</span></button>
-        <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Simulation options" title="Simulation options">
-        </button>
-        <div class="dropdown-menu shadow" aria-labelledby="btnDropdownDemo">
-          <a class="dropdown-item disabled" href="#"><i class="bi bi-upload me-2"></i>Load options</a>
-          <a class="dropdown-item" href="#" id="button_sim_params" onclick='KomaUI.notify("view_simulation_options")'><i class="bi bi-gear-fill me-2"></i>View options</a>
-        </div>
-      </div>
+      <button type="button" class="btn btn-primary btn-sm w-100 koma-action-button" id="simulate!" onclick='this.disabled=true; KomaUI.notify("simulate")' aria-label="Simulate" title="Simulate"><span class="koma-action-icon icon-flask" aria-hidden="true"></span><span class="koma-action-label">Simulate!</span></button>
     </li>
     <!-- SIGNAL -->
     <li id="sig" class="nav-item dropdown dropdown-dark mt-3">
@@ -118,16 +111,7 @@
     <hr class="koma-sidebar-divider">
     <!-- RECON -->
     <li class="nav-item">
-      <div class="btn-group btn-group-sm d-flex">
-        <!-- <button type="button" class="btn btn-primary w-100" id="recon!" onclick='KomaUI.notify("reconstruct")' disabled>Reconstruct!</button> -->
-        <button type="button" class="btn btn-primary w-100 koma-action-button" id="recon!" onclick='KomaUI.notify("reconstruct")' aria-label="Reconstruct" title="Reconstruct"><span class="koma-action-icon icon-calculator" aria-hidden="true"></span><span class="koma-action-label">Reconstruct!</span></button>
-        <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Reconstruction options" title="Reconstruction options">
-        </button>
-        <div class="dropdown-menu shadow" aria-labelledby="btnDropdownDemo">
-          <a class="dropdown-item disabled" href="#"><i class="bi bi-upload me-2"></i>Load options</a>
-          <a class="dropdown-item" href="#" id="button_rec_params" onclick='KomaUI.notify("view_reconstruction_options")'><i class="bi bi-gear-fill me-2"></i>View options</a>
-        </div>
-      </div>
+      <button type="button" class="btn btn-primary btn-sm w-100 koma-action-button" id="recon!" onclick='KomaUI.notify("reconstruct")' aria-label="Reconstruct" title="Reconstruct"><span class="koma-action-icon icon-calculator" aria-hidden="true"></span><span class="koma-action-label">Reconstruct!</span></button>
     </li>
     <!-- RECOND IMAGE -->
     <li id="recon" class="nav-item dropdown dropdown-dark mt-3">
@@ -152,6 +136,30 @@
       </ul>
     </li>
   </ul>
+  <hr class="koma-sidebar-divider">
+  <div id="koma-configuration">
+    <ul class="navbar-nav nav-pills flex-column mb-0">
+      <li class="nav-item dropdown dropdown-dark">
+        <a class="koma-nav-link nav-link dropdown-toggle iconkoma" href="#" role="button"
+          id="configuration-dropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Configuration" title="Configuration">
+          <span class="koma-nav-icon bi-gear-fill" aria-hidden="true"></span><span class="koma-nav-label">Configuration</span>
+        </a>
+        <ul class="dropdown-menu shadow" aria-labelledby="configuration-dropdown">
+          <li><a class="dropdown-item" href="#" id="button_configuration" onclick='KomaUI.notify("view_configuration")'>View configuration</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li class="dropdown-interact">
+            <div class="filepicker-row">
+              <span id="configfilepicker"></span>
+              <button id="button_reload_configuration" class="file-reload-button" type="button" onclick='KomaUI.notify("reload_configuration")' title="Reload configuration" disabled>
+                <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+              </button>
+            </div>
+          </li>
+        </ul>
+      </li>
+      <li id="configname" hidden></li>
+    </ul>
+  </div>
   <hr class="koma-sidebar-divider">
   <div class="koma-sidebar-footer">
     <!-- Koma GITHUB -->
@@ -235,7 +243,7 @@
     const main = document.getElementById('main');
     const host = document.getElementById('koma-host-status');
     const status = document.getElementById('koma-connection-state');
-    const serverControls = '.koma-sidebar > ul, #koma-device-menu, .koma-logo, #button_toggle_sidebar, .koma-theme-switch, #content, .koma-toast-action';
+    const serverControls = '.koma-sidebar > ul, #koma-configuration, #koma-device-menu, .koma-logo, #button_toggle_sidebar, .koma-theme-switch, #content, .koma-toast-action';
     Bonito.register_connection_indicator({
       onStatusChange(connection) {
         const connected = connection === 'connected';
@@ -278,11 +286,16 @@
     };
     window.addEventListener('resize', () => setCollapsed(manuallyCollapsed || narrow.matches));
     setCollapsed(narrow.matches);
-    sidebar.querySelectorAll(':scope > ul [data-bs-toggle="dropdown"]').forEach(button => {
+    sidebar.querySelectorAll(':scope > ul [data-bs-toggle="dropdown"], #koma-configuration [data-bs-toggle="dropdown"], .koma-sidebar-footer [data-bs-toggle="dropdown"]').forEach(button => {
+      button.parentElement.classList.add('dropend');
       button.nextElementSibling.classList.add('koma-scroll-menu');
       bootstrap.Dropdown.getOrCreateInstance(button, {popperConfig: config => ({
         ...config, strategy: 'fixed',
-        placement: sidebar.classList.contains('is-collapsed') ? 'right-start' : config.placement
+        modifiers: [...config.modifiers, {
+          name: 'komaMenuArrow', enabled: true, phase: 'write',
+          fn: ({state}) => state.elements.popper.style.setProperty('--koma-menu-arrow-y',
+            `${state.rects.reference.y + state.rects.reference.height / 2 - state.modifiersData.popperOffsets.y}px`)
+        }]
       })});
     });
   })();

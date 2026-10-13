@@ -30,9 +30,7 @@ waveform representation:
 
 In the image below, we provide a summary of how you can define **RF** events:
 
-```@raw html
-<p align="center"><img width="100%" src="../assets/event-shapes-rf-horizontal.svg"/></p>
-```
+![](../assets/event-shapes-rf-horizontal.svg)
 
 Let's look at some basic examples of creating these **RF** structs and including them in a **Sequence** struct. The examples should be self-explanatory.
 
@@ -123,9 +121,7 @@ As with RF events, `A` and `T` can be numbers or vectors:
 
 In the image below, we provide a summary of how you can define **Grad** events:
 
-```@raw html
-<p align="center"><img width="100%" src="../assets/event-shapes-gr-horizontal.svg"/></p>
-```
+![](../assets/event-shapes-gr-horizontal.svg)
 
 Let's look at some basic examples of creating these **Grad** structs and including them in a **Sequence** struct, focusing on the `x` component of the gradients. The examples should be self-explanatory.
 
@@ -207,9 +203,7 @@ are used for frequency and phase compensation.
 
 In the image below you can see how to define an **ADC** event:
 
-```@raw html
-<p align="center"><img width="50%" src="../assets/event-shapes-adc.svg"/></p>
-```
+![](../assets/event-shapes-adc.svg){style="width:50%"}
 
 Let's look at a basic example of defining an **ADC** struct and including it in a **Sequence** struct:
 ```julia-repl

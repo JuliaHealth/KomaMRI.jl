@@ -6,10 +6,12 @@ class Element {
     style = {}; children = []; handlers = {};
     clientWidth = 640; clientHeight = 400; isConnected = true;
     append(child) { this.children.push(child); }
+    prepend(child) { this.children.unshift(child); }
     on(event, callback) { this.handlers[event] = callback; }
     addEventListener(event, callback) { this.handlers[event] = callback; }
     removeEventListener(event) { delete this.handlers[event]; }
     closest() { return null; }
+    querySelector(selector) { return this.children.find(child => `.${child.className}` === selector) ?? null; }
     querySelectorAll() { return []; }
 }
 const resizeObservers = [], mutationObservers = [];

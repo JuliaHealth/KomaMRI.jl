@@ -6,6 +6,34 @@
 # Repeated times are preserved where discontinuities need left/right states.
 
 # -- 3.1. Merge candidate sampling times ------------------------------------
+const SAMPLING_TIME_ROUNDOFF_ULPS = 8
+same_sampling_time(t, s) =
+    t == s || abs(t - s) <= SAMPLING_TIME_ROUNDOFF_ULPS * eps(max(abs(t), abs(s)))
+
+function align_sampling_times!(time_sets...)
+    all_times = sort!(unique!(vcat(time_sets...)))
+    i = firstindex(all_times)
+    while i <= lastindex(all_times)
+        t = all_times[i]
+        j = i + 1
+        while j <= lastindex(all_times) && same_sampling_time(t, all_times[j])
+            j += 1
+        end
+        last_t = all_times[j - 1]
+        # Align independent sources, never distinct times within one waveform.
+        can_align = t != last_t && all(time_sets) do times
+            lo, hi = searchsortedfirst(times, t), searchsortedlast(times, last_t)
+            lo > hi || times[lo] == times[hi]
+        end
+        can_align && foreach(time_sets) do times
+            lo, hi = searchsortedfirst(times, t), searchsortedlast(times, last_t)
+            times[lo:hi] .= t
+        end
+        i = j
+    end
+    return nothing
+end
+
 count_sorted_equal(times::Union{AbstractVector,AbstractRange}, t) =
     searchsortedlast(times, t) - searchsortedfirst(times, t) + 1
 count_sorted_equal(times, t) = count(==(t), times)

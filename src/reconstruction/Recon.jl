@@ -356,8 +356,16 @@ function reconstruction_geometry_warning(raw)
     return join(warnings, "\n")
 end
 
-function _prepare_acquisition!(acquisition, raw)
-    scale = _legacy_trajectory(raw) ? _legacy_trajectory_scale(raw) : 1
+function reconstruction_geometry_warning(result::ReconstructionResult)
+    scales = unique(entry.trajectory_scale for entry in result.images if entry.trajectory_scale > 1)
+    return join((
+        "Calculated k-space exceeds the specified FOV/matrix limits. " *
+        "K-space coordinates were rescaled by $(round(scale; sigdigits=6)). " *
+        "Check Nx/Ny/Nz and FOV in [DEFINITIONS]." for scale in scales
+    ), "\n")
+end
+
+function _prepare_acquisition!(acquisition, scale)
     for trajectory in acquisition.traj
         trajectory.circular = false
         isone(scale) || (trajectory.nodes ./= scale)
@@ -379,8 +387,16 @@ end
 function _reconstruct_batch(batch, rec_params, coil_policy)
     raw = batch.raw
     acquisition = AcquisitionData(raw)
-    _prepare_acquisition!(acquisition, raw)
+    legacy = _legacy_trajectory(raw)
+    scale = _legacy_trajectory_scale(raw)
+    isfinite(scale) || throw(ArgumentError("K-space coordinates must be finite."))
+    trajectory_scale = legacy ? one(scale) : max(one(scale), scale)
+    _prepare_acquisition!(acquisition, legacy ? scale : trajectory_scale)
     dimensions = size(first(acquisition.traj).nodes, 1)
+    if trajectory_scale > 1
+        acquisition.fov = ntuple(d -> d <= dimensions ?
+            acquisition.fov[d] / trajectory_scale : acquisition.fov[d], 3)
+    end
     params = Dict{Symbol,Any}(pairs(rec_params))
     pop!(params, :recon_policy, nothing)
     params[:reconSize] = Tuple(Int.(raw.params["reconSize"][1:dimensions]))
@@ -390,7 +406,7 @@ function _reconstruct_batch(batch, rec_params, coil_policy)
     dimensions == 2 && raw.params["encodedSize"][2] == 1 &&
         (image = image[:, 1:1, :, :, :, :])
     coil_policy === :rss && (image = _rss(image))
-    return (; batch.labels, batch.source, image)
+    return (; batch.labels, batch.source, image, trajectory_scale)
 end
 
 _magnitude_group(entry, echo) = (
@@ -437,8 +453,10 @@ For a line within a multi-dimensional acquisition, the retained ADC sample count
 its matrix size instead of the imaging matrix. Geometry and scaling exclude MRD samples
 marked for discarding, as MRIReco does. The input MRD data is not modified.
 
-New Koma MRD coordinates are reconstruction-ready and used unchanged. Multiplying by
+New Koma MRD coordinates within ±0.5 are reconstruction-ready and used unchanged. Multiplying by
 the saved `KomaTrajectoryScaleX/Y/Z` factors recovers physical k-space in cycles/m.
+Out-of-range batches use one common rescaling factor, warn to check `Nx/Ny/Nz` and
+`FOV` in `[DEFINITIONS]`, and reduce the reconstructed spatial axes' FOV accordingly.
 Old files or data without a known FOV use legacy global-maximum normalization.
 Lines inheriting an imaging matrix/FOV also use that fallback.
 
@@ -454,7 +472,8 @@ their matching complex data before reconstruction; `COIL=:rss` instead combines 
 magnitudes after reconstruction.
 
 The result is a named tuple `(policy, images)`. Each element of `images` is a named tuple
-`(labels, source, image, magnitude_limits)`, where `image` is MRIReco's `AxisArray`.
+`(labels, source, image, trajectory_scale, magnitude_limits)`, where `image` is MRIReco's `AxisArray`.
+`trajectory_scale` records the out-of-range rescaling factor, or 1 when none was needed.
 `magnitude_limits` contains one display-range pair per `source.ECO` value, computed once
 after reconstruction. Ranges are shared across slices, partitions, averages, repetitions,
 phases, segments, and coils, but separate for each `(ROLE, DIM, SET, ECO)` combination.
@@ -473,5 +492,8 @@ function reconstruct_with_labels(
     images = _with_magnitude_limits([
         _reconstruct_batch(batch, rec_params, policy.COIL) for batch in batches
     ])
-    return (; policy, images)
+    result = (; policy, images)
+    warning = reconstruction_geometry_warning(result)
+    isempty(warning) || @warn warning
+    return result
 end
