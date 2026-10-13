@@ -92,7 +92,7 @@
 
 ## PRs And Releases
 - PRs target `master`, stay scoped, and include what changed, why, and what was tested.
-- Add trigger labels at PR creation when the first CI run matters: `documentation` or `run-gpu-ci`. Adding them after PR creation is too late for the first run.
+- Add or change PR labels/tags only when explicitly requested by the user. Pushing or marking a PR ready does not authorize `run-gpu-ci`, `documentation`, or other opt-in CI/preview triggers.
 - Do not use the `pre-release` label unless the user explicitly asks to test Julia pre-release versions.
 - Register package versions only after the release PR is merged and `origin/master` contains the target package/version. Do not trigger JuliaRegistrator from an open PR.
 - For subpackage registration, comment on the merged `origin/master` commit, not the PR: `@JuliaRegistrator register subdir=<PackageName>`. PR comments do not trigger Registrator in this repo.
