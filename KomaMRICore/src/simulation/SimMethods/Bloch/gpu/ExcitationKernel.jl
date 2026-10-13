@@ -36,7 +36,8 @@ end
 @kernel unsafe_indices=true inbounds=true function excitation_kernel!(
     sig_output::AbstractMatrix{Complex{T}}, 
     M_xy, M_z, receiver, N_coils, N_adc,
-    @Const(p_x), @Const(p_y), @Const(p_z), @Const(p_ΔBz), @Const(p_T1), @Const(p_T2), @Const(p_ρ), N_spins,
+    @Const(p_x), @Const(p_y), @Const(p_z), @Const(p_ΔBz), @Const(p_T1), @Const(p_T2), @Const(p_ρ),
+    p_first_reset, N_spins,
     @Const(s_Gx), @Const(s_Gy), @Const(s_Gz), @Const(s_Δt), @Const(s_Δf), @Const(s_B1), @Const(s_ψ), @Const(s_ADC), s_length,
     ::Val{MOTION}, ::Val{USE_WARP_REDUCTION}, ::Val{HAS_ADC},
     ::Val{HAS_SENSITIVITIES},
@@ -70,14 +71,19 @@ end
     Bx_0 = zero(T)
     By_0 = zero(T)
     Bz_0 = zero(T)
+    first_reset = typemax(UInt32)
 
     if active
+        first_reset = spin_first_reset(p_first_reset, i)
         ΔBz = p_ΔBz[i]
         Mxy_r, Mxy_i = reim(M_xy[i])
         Mz = M_z[i]
         ρ = p_ρ[i]
         T1 = p_T1[i]
         T2 = p_T2[i]
+        Mxy_r, Mxy_i, Mz = reset_spin_state(
+            first_reset, 1u32, Mxy_r, Mxy_i, Mz, ρ,
+        )
         # Rotating frame -> RF frame
         # M * exp(-i * ψ)
         ψ_start = s_ψ[1]
@@ -116,6 +122,9 @@ end
             Mxy_r = Mxy_new_r * E2
             Mxy_i = Mxy_new_i * E2
             Mz = Mz_new * E1 + ρ * (T(1) - E1)
+            Mxy_r, Mxy_i, Mz = reset_spin_state(
+                first_reset, s_idx, Mxy_r, Mxy_i, Mz, ρ,
+            )
 
             Bx_0, By_0, Bz_0 = Bx_1, By_1, Bz_1
         end

@@ -210,3 +210,9 @@ function add_key_time_points!(t, ml::MotionList)
         add_key_time_points!(t, m)
     end
 end
+
+function filter_cycle_remapped_flowpath(ml::MotionList)
+    remap = filter(has_cycle_map, ml.motions)
+    length(remap) <= 1 || throw(ArgumentError("Only one cycle-remapped FlowPath is supported per phantom."))
+    return isempty(remap) ? nothing : only(remap)
+end
