@@ -70,6 +70,7 @@ end
         @test opts.sequence == "epi.seq"
         @test opts.phantom == "brain.h5"
         @test opts.scanner == "scanner.sys"
+        @test KomaMRI.parse_cli_args(["-i", "subj42.json"]).phantom == "subj42.json"
         @test opts.sim_output == "raw.mrd"
         @test opts.recon_output == "image.mat"
 
@@ -145,8 +146,10 @@ end
         repo = dirname(path)
         phantom_file = joinpath(repo, "KomaMRIFiles", "test", "test_files", "phantom", "brain_nomotion_w.phantom")
         jemris_file = joinpath(repo, "KomaMRIFiles", "test", "test_files", "phantom", "column1d.h5")
+        bifti_file = joinpath(repo, "KomaMRIFiles", "test", "test_files", "phantom", "bifti", "shapes.json")
         @test KomaMRI.load_cli_phantom(phantom_file) isa KomaMRI.Phantom
         @test KomaMRI.load_cli_phantom(jemris_file) isa KomaMRI.Phantom
+        @test KomaMRI.load_cli_phantom(bifti_file).name == "shapes.json"
 
         sys, seq, obj = KomaMRI.cli_inputs(KomaMRI.CLIOptions(scanner="scanner.sys"))
         @test sys isa KomaMRI.Scanner

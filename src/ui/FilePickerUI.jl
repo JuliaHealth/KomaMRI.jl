@@ -35,6 +35,8 @@ function callback_filepicker(filename::String, w::KomaWindow, obj::Phantom)
         obj = read_phantom(filename)
     elseif ext == ".h5"
         obj = read_phantom_jemris(filename)
+    elseif ext == ".json"
+        obj = read_phantom_bifti(filename)
     end
     name = basename(filename)
     update_filename!(w, "phaname", name)
@@ -67,9 +69,9 @@ function setup_filepickers!(w::KomaWindow; seq_file=Ref(""), phantom_file=Ref(""
         w,
         "#phafilepicker",
         "#phaname",
-        ".phantom (Koma)/.h5 (JEMRIS)",
+        ".phantom (Koma)/.h5 (JEMRIS)/.json (BIfTI)",
         obj_ui;
-        accept=".phantom,.h5",
+        accept=".phantom,.h5,.json",
         selected_file=phantom_file,
     )
     setup_filepicker!(

@@ -19,6 +19,8 @@ PulseqSequenceData
 ```@docs
 read_phantom_jemris
 read_phantom_MRiLab
+read_phantom_bifti
+read_coil_sens_bifti
 read_phantom
 write_phantom
 ```

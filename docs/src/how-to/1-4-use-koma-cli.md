@@ -25,7 +25,7 @@ Add input files without output paths to preload the UI before it opens:
 koma -i epi.seq brain.phantom
 ```
 
-Input files can be passed in any order. KomaMRI identifies them by extension: `.seq`, `.phantom` or `.h5`.
+Input files can be passed in any order. KomaMRI identifies them by extension: `.seq`, `.phantom`, `.h5` or `.json` (BIfTI).
 A scanner `.sys` file is also accepted, but it does nothing for now.
 
 ## Running Simulation
