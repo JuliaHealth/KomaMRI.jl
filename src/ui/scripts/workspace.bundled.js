@@ -135,4 +135,3 @@ function mount(entries, add, closeWindow, darkmode) {
     });
 }
 export { mount as mount };
-
