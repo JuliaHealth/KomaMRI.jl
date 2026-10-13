@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1790860537779,
+  "lastUpdate": 1791921353951,
   "repoUrl": "https://github.com/JuliaHealth/KomaMRI.jl",
   "entries": {
     "KomaMRI Benchmarks": [
@@ -9308,6 +9308,172 @@ window.BENCHMARK_DATA = {
             "value": 92779285,
             "unit": "ns",
             "extra": "gctime=0\nmemory=24102440\nallocs=109631\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "Charles McGrath",
+            "username": "mcgrathcm",
+            "email": "79576619+mcgrathcm@users.noreply.github.com"
+          },
+          "committer": {
+            "name": "GitHub",
+            "username": "web-flow",
+            "email": "noreply@github.com"
+          },
+          "id": "901b4d2706b9ff23b742fa69953907f8bda31234",
+          "message": "Add periodic FlowPath magnetization remapping (#935)\n\n* Add periodic FlowPath magnetization remapping\n\n* Fixed rounding error when determining periodic boundary, updated style, remapping is no longer GPU only\n\n* Updated remapping tolerance to use MAX_STEP_TIME_SNAP_TOL. Requires #948\n\n* Added SpinResetState struct that tracks whether a spin has been reset during a simulation block. Currently functional for all CPU implementations (besides Simple and Dict)\n\n* Added support for BlochSimple\n\n* Re-distribute functions over files and improve method dispatch\n\n* Initial version of GPU outflow spin reset fix\n\n* Moved some functions and cleaned up final version. Final test still needed\n\n* Removed tests\n\n* Removed uneeded call\n\n* Added support for bloch dict to match other functionality\n\n* Deprecated BlochDict\n\n* Minor version bump\n\n* Fixed issue with custom phantom and phantom comparison\n\n* Added error when slicing phantoms with cycle_map\n\n* Fix package versions and compat for FlowPath cycle maps\n\n---------\n\nCo-authored-by: Pablo Villacorta Aylagas <pablo.villacorta@uva.es>\nCo-authored-by: Carlos Castillo Passi <cacp@stanford.edu>",
+          "timestamp": "2026-10-13T00:23:54Z",
+          "url": "https://github.com/JuliaHealth/KomaMRI.jl/commit/901b4d2706b9ff23b742fa69953907f8bda31234"
+        },
+        "date": 1791921235654,
+        "tool": "julia",
+        "benches": [
+          {
+            "name": "MRI Lab/Bloch/GPU/AMDGPU",
+            "value": 20285384,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=17096992\nallocs=72227\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "MRI Lab/Bloch/GPU/CUDA",
+            "value": 16450018,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=16638752\nallocs=61183\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "MRI Lab/Bloch/GPU/Metal",
+            "value": 53529291.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=18306528\nallocs=69400\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "MRI Lab/Bloch/GPU/oneAPI",
+            "value": 57243728,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=21053424\nallocs=137531\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "MRI Lab/BlochMagnus2/GPU/AMDGPU",
+            "value": 20204525,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=17131008\nallocs=72103\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "MRI Lab/BlochMagnus2/GPU/CUDA",
+            "value": 16459512,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=16687280\nallocs=61297\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "MRI Lab/BlochMagnus2/GPU/Metal",
+            "value": 53625334,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=18348976\nallocs=69515\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "MRI Lab/BlochMagnus2/GPU/oneAPI",
+            "value": 56977698,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=21101952\nallocs=137645\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "MRI Lab/BlochMagnus4/GPU/AMDGPU",
+            "value": 20365141,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=17160352\nallocs=72110\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "MRI Lab/BlochMagnus4/GPU/CUDA",
+            "value": 16518212,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=16716688\nallocs=61305\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "MRI Lab/BlochMagnus4/GPU/Metal",
+            "value": 53877250,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=18371376\nallocs=69488\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "MRI Lab/BlochMagnus4/GPU/oneAPI",
+            "value": 57174177,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=21131328\nallocs=137653\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/GPU/AMDGPU",
+            "value": 24688216,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=21334424\nallocs=63928\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/GPU/CUDA",
+            "value": 15999622,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=20928792\nallocs=54520\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/GPU/Metal",
+            "value": 81698333.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=21962576\nallocs=60712\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/GPU/oneAPI",
+            "value": 74881363,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=24097096\nallocs=109632\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Slice Selection 3D/BlochMagnus2/GPU/AMDGPU",
+            "value": 25024035.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=21339352\nallocs=63983\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Slice Selection 3D/BlochMagnus2/GPU/CUDA",
+            "value": 15984334,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=20932312\nallocs=54556\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Slice Selection 3D/BlochMagnus2/GPU/Metal",
+            "value": 81613750,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=21965120\nallocs=60736\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Slice Selection 3D/BlochMagnus2/GPU/oneAPI",
+            "value": 74870585.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=24099992\nallocs=109646\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Slice Selection 3D/BlochMagnus4/GPU/AMDGPU",
+            "value": 24855746,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=21343176\nallocs=63987\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Slice Selection 3D/BlochMagnus4/GPU/CUDA",
+            "value": 16047008,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=20935768\nallocs=54547\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Slice Selection 3D/BlochMagnus4/GPU/Metal",
+            "value": 81857459,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=21954432\nallocs=60585\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Slice Selection 3D/BlochMagnus4/GPU/oneAPI",
+            "value": 74780288,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=24103816\nallocs=109648\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
           }
         ]
       }
