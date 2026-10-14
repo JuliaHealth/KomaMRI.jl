@@ -11,6 +11,8 @@ p1 = plot_phantom_map(obj, :T2 ; height=450, time_samples=4)
 # Read Sequence #hide
 seq_file1 = joinpath(dirname(pathof(KomaMRI)), "../examples/5.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq") #hide
 seq1 = @suppress read_seq(seq_file1); #hide
+seq1.DEF["Nx"], seq1.DEF["Ny"], seq1.DEF["Nz"] = 100, 100, 1 #hide
+seq1.DEF["FOV"] = [0.23, 0.23, 1e-3] #hide
 # Simulate #hide
 raw1 = @suppress simulate(obj, seq1, sys) #hide
 # Recon #hide
@@ -43,6 +45,10 @@ _, kspace = get_kspace(seq1)
 acq1.kdata[1] .*= exp.(im*ΔΦ)
 image2 = reconstruction(acq1, reconParams) #hide
 p4 = plot_image(abs.(image2[:, :, 1]); height=400) #hide
-display([p2 p4]);
+p2.layout[:title] = "Without motion correction" #hide
+p4.layout[:title] = "With motion correction" #hide
+p = [p2 p4] #hide
+foreach(trace -> trace[:showscale] = false, p.data) #hide
+display(p);
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
