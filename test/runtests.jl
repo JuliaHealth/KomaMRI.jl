@@ -495,6 +495,46 @@ end
     @test_throws ErrorException KomaMRICore._assert_nonnegative_adc_labels(negative)
 end
 
+@testitem "Workspace window ownership and lifecycle" tags=[:koma] begin
+    using Bonito
+
+    w = KomaUI(; seq=Sequence(), obj=Phantom(x=[0.0]), sim=Dict("gpu" => false),
+        show_window=false, return_window=true, verbose=false)
+    workspace = KomaWorkspace([w]; port=0)
+    session = Bonito.Session()
+    try
+        Bonito.jsrender(session, workspace.app)
+        other = add_window!(workspace; seq=Sequence(), obj=Phantom(x=[0.0], ρ=[2.0]),
+            sim=Dict("gpu" => false), verbose=false)
+
+        # Workspace members have distinct routes and independent simulation inputs.
+        @test ui_status(w).url != ui_status(other).url
+        w.obj[] = Phantom(x=[0.0], ρ=[3.0])
+        @test other.obj[].ρ == [2.0]
+
+        # A rendered workspace propagates its shared theme to every member.
+        workspace.darkmode[] = !workspace.darkmode[]
+        @test all(member -> member.darkmode[] == workspace.darkmode[], workspace.windows)
+
+        # Duplicate or already-owned windows cannot be adopted by another workspace.
+        @test_throws ArgumentError KomaWorkspace([w, w]; port=0)
+        @test_throws ArgumentError KomaWorkspace([other]; port=0)
+
+        # Closing one member leaves its sibling and shared server usable.
+        close(w)
+        @test isopen(workspace) && isopen(other)
+        other.obj[] = Phantom(x=[0.0], ρ=[4.0])
+        @test other.state[] == "phantom" && other.obj[].ρ == [4.0]
+    finally
+        close(workspace)
+        close(session)
+    end
+
+    # Closing the workspace releases all members and rejects subsequent additions.
+    @test !isopen(workspace) && all(member -> !isopen(member), workspace.windows)
+    @test_throws ErrorException add_window!(workspace)
+end
+
 @testitem "KomaUI" tags=[:koma] begin
     using Bonito
 
