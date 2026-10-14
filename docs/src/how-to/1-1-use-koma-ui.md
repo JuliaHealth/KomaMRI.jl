@@ -1,20 +1,15 @@
 # Use Koma's User Interface
 
-This section provides a comprehensive guide on using the **User Interface** of the **KomaMRI** package and delves into the internal processes that occur during interaction. By the end of this section, you will be equipped to execute a complete workflow even without any prior programming experience.
+Load a sequence, phantom, and scanner; simulate, reconstruct, and export the results.
+The [notebook](1-2-use-koma-notebooks.md#Basic-Workflow) and
+[Julia script](1-3-use-koma-scripts.md#Basic-Workflow) guides follow the same brain/EPI example.
 
 ![](../assets/ui-simulation.gif){style="width:90%"}
 
 
 ## Basic Workflow
-(You can also go to [analog steps using Scripts](1-3-use-koma-scripts.md#Basic-Workflow))
 
-As a general overview, remember the following workflow steps when using KomaMRI:
-
-* Loading Simulation Inputs: **Scanner**, **Phantom**, **Sequence**
-* Running Simulation
-* Reconstructing Image using **MRIReco**
-
-In the following subsections, we will cover all the mentioned steps. First, open the **Julia REPL** and enter the following commands to include the **KomaMRI** package and launch the user interface:
+Open the interface from Julia:
 ```julia-repl
 julia> using KomaMRI
 
@@ -26,14 +21,16 @@ After installing the [`koma` app](1-4-use-koma-cli.md#Installing-the-App) (Julia
 ```bash
 koma
 ```
-Use the arrow to the right of the sidebar to collapse or expand it. Manual collapse stays collapsed; expanding restores width-responsive behavior.
+Use the sidebar arrow to collapse or expand it.
 
 ![](../assets/gui-dashboard.png){style="width:90%"}
 
 ## Loading Simulation Inputs
-(You can also go to [analog steps using Scripts](1-3-use-koma-scripts.md#Loading-Simulation-Inputs))
 
-The user interface has preloaded certain inputs into RAM, including the **Scanner**, **Phantom**, and **Sequence** structs. In the following subsections, we will demonstrate how to visualize these inputs.
+Same inputs: [Julia scripts](1-3-use-koma-scripts.md#Loading-Simulation-Inputs).
+
+The interface starts with a scanner, a 2D brain phantom, and an EPI sequence.
+Use each menu's file picker to replace an input, or its reload button to reread it.
 
 ### Scanner
 
@@ -47,40 +44,19 @@ Select `View limits` for hardware limits or `View coil sensitivities` for receiv
 
 ### Phantom
 
-To see the phantom already stored in RAM, simply click on the `Phantom` dropdown an then press the `View phantom` button. The preloaded phantom is a slice of a brain:
+`Phantom` → `View phantom`:
 
 ![](../assets/gui-phantom-view.png){style="width:90%"}
-
-`View phantom slices` opens three linked slab views. Scroll or drag each slice
-slider to change its position; the thickness selector and motion controls are shared.
-
-For moving phantoms, select `|v|`, `vx`, `vy`, or `vz` to color spins in cm/s. Signed components
-use blue/white/red for negative/zero/positive with fixed symmetric limits over time.
-Magenta marks exit before a reset; cyan marks re-entry after it. Reset jumps are
-excluded from the velocity scale.
-Property buttons share one plot, preserving camera and time. Use ▶/❚❚ beside the
-time slider for a five-second loop; playback skips display frames when needed,
-but every time step remains selectable. Dragging the slider pauses playback.
-Motion previews sample visible spins; zooming concentrates detail in that region.
-The percentage reports visible spins shown; stopping restores spatial detail.
-
-It is also possible to load `.h5` phantom files. The **KomaMRI.jl** has some examples stored at `~/.julia/packages/KomaMRI/<id-string>/examples/2.phantoms/`. For instance, let's load the `sphere_chemical_shift.h5` file:
-
-![](../assets/gui-phantom-load.png){style="width:90%"}
-
-Note that you can select different spin parameters to visualize like `ρ`, `T1`, `T2`, among others. 
 
 ### Sequence
 
 Select `View definitions` to inspect the loaded sequence's `DEF` dictionary, including any `FOV`, `Nx`, `Ny`, and `Nz` values.
 
-There are two options to visualize the sequence already preloaded in RAM: in the time domain or in the k-space. The preloaded sequence is a single-shot EPI.
-
-For visualization of the sequence in the time domain, click on the `Sequence` dropdown and then press the `View sequence` button:
+`Sequence` → `View sequence`:
 
 ![](../assets/gui-seq-time-view.png){style="width:90%"}
 
-For visualization of the sequence in the k-space, click on the `Sequence` dropdown and then press the `View k-space` button:
+`Sequence` → `View k-space`:
 
 ![](../assets/gui-seq-kspace-view.png){style="width:90%"}
 
@@ -88,23 +64,14 @@ Zoom the compact sequence panel below k-space to select a time window. The
 trajectory follows that window while preserving the 3D camera; double-click
 the sequence panel to reset the selection.
 
-You can also display the `Moments` related to the **Sequence** by pressing the `View moments` and then pressing the buttons for zero, first and second moments.
+`Sequence` → `View moments`:
 
-It is also possible to load **Pulseq** compatible `.seq` sequence files. Explicit `Nx`, `Ny`, `Nz`, and `FOV` definitions are recommended for reconstruction. If dimensions are missing, a warning reports the inferred matrix without modifying the file. The **KomaMRI** has some examples stored at `~/.julia/packages/KomaMRI/<id-string>/examples/1.sequences/`. For instance, let's load the `spiral.seq` file and view it the time domain and k-space:
-
-![](../assets/gui-seq-time-load.png){style="width:90%"}
-
-![](../assets/gui-seq-kspace-load.png){style="width:90%"}
-
-And remember, you are free to interact with the plots:
-
-![](../assets/ui-seq.gif){style="width:90%"}
+![Zero, first, and second gradient moments](../assets/ui-sequence-moments.gif){style="width:90%"}
 
 
 ## Running Simulation
-(You can also go to [analog steps using Scripts](1-3-use-koma-scripts.md#Running-Simulation))
 
-Once the inputs are loaded in RAM, it is possible to perform the simulation to get the **Raw Signal**.
+Same simulation: [Julia scripts](1-3-use-koma-scripts.md#Running-Simulation).
 
 ### Simulation Parameters
 
@@ -117,14 +84,14 @@ See the [configuration example](1-4-use-koma-cli.md#Configuration-files).
 
 ### Visualization of the Raw Signal
 
-Press the `Simulate!` button to perform the simulation (this may take a while). Automatically the generated **Raw Signal** should be displayed or you can click on the `Raw data` dropdown and then press the `View raw data` button:
+Press `Simulate!`. The raw signal appears automatically.
+Reopen it with `Raw data` → `View raw data`.
 
 ![](../assets/gui-rawsignal-view.png){style="width:90%"}
 
 ## Reconstructing Image using MRIReco
-(You can also go to [analog steps using Scripts](1-3-use-koma-scripts.md#Reconstructing-Image-using-MRIReco))
 
-Once the **Raw Signal** is loaded in RAM, it is possible to reconstruct the image.
+Same reconstruction: [Julia scripts](1-3-use-koma-scripts.md#Reconstructing-Image-using-MRIReco).
 
 ### Reconstruction Parameters
 
@@ -133,7 +100,8 @@ Reconstruction `[recon_params]` appears below simulation parameters on the
 
 ### Visualization of the Image
 
-Press the `Reconstruct!` button to perform the reconstruction (this may take a while). Automatically the generated **Image** should be displayed or you can click on the `Image` dropdown and then press the `View image` button:
+Press `Reconstruct!`. The image appears automatically.
+Reopen it with `Image` → `View image`.
 
 ![](../assets/gui-image-view.png){style="width:90%"}
 
@@ -141,9 +109,14 @@ PAR volumes and compatible SLC stacks open linked image-coordinate slice views.
 Acquisition-label and coil selectors retain the slice positions. Middle-drag to
 adjust window width/level in images or log-k-space; double-click resets it.
 
+![Linked reconstructed image slices](../assets/gui-image-slices.png){style="width:90%"}
+
+See [Cartesian multi-slice reconstruction](../tutorial/gen-08-CartesianLabels.md)
+for a simulated `SLC` acquisition and its interactive reconstructed slice stack.
+
 ## Exporting results
 
-(You can also go to [analog steps using Scripts](1-3-use-koma-scripts.md#Exporting-Results-to-.mat-File))
+Same outputs: [Julia scripts](1-3-use-koma-scripts.md#Exporting-Results).
 
 Open `Export results` to download the image (`.mat`) or raw data (`.mat` or `.mrd`).
 Electron opens a folder picker. Supported browsers open a Save As picker;
@@ -153,6 +126,41 @@ other browsers download the file using their download settings.
 
 See the [MATLAB export reference](../reference/4-koma-files.md#MATLAB-exports)
 for filenames, struct fields, and MATLAB examples.
+
+## Exploring other inputs
+
+After completing the brain/EPI workflow, try the same
+[sphere](1-3-use-koma-scripts.md#Phantom) and
+[spiral](1-3-use-koma-scripts.md#Sequence) examples as in the script and notebook guides.
+
+Load `examples/2.phantoms/sphere_chemical_shift.h5` in the Phantom file picker
+and select `T2`:
+
+![](../assets/gui-phantom-load.png){style="width:90%"}
+
+Load `examples/1.sequences/spiral.seq` in the Sequence file picker:
+
+![](../assets/gui-seq-time-load.png){style="width:90%"}
+
+![](../assets/gui-seq-kspace-load.png){style="width:90%"}
+
+Interact with the plots:
+
+![](../assets/ui-seq.gif){style="width:90%"}
+
+Include `Nx`, `Ny`, `Nz`, and `FOV` definitions when reconstructing a loaded
+sequence; missing dimensions produce an inference warning.
+
+### Additional phantom views
+
+`View phantom slices` opens three linked slab views. Scroll or drag each slice
+slider to change its position; the thickness selector and motion controls are shared.
+
+![Linked phantom slab views](../assets/gui-phantom-slices.png){style="width:90%"}
+
+For phantoms with Flow motion:
+
+![Flow motion and velocity in a U-bend phantom](../assets/ui-phantom-flow.gif){style="width:90%"}
 
 ## Backend and device selection
 
@@ -178,28 +186,18 @@ using KomaMRI
 KomaUI(; browser=true)
 ```
 
-```@raw html
-<p>KomaUI prints the URL, for example:</p>
-<div class="language-text vp-adaptive-theme">
-  <button title="Copy Code" class="copy"></button><span class="lang">text</span>
-  <pre><code>┌ Info: Open KomaUI in your browser
-└   url = "<span style="color:var(--vp-c-indigo-1)">http://localhost:9384/</span>"</code></pre>
-</div>
-<p>Open the printed URL in <span style="color:var(--vp-c-indigo-1)">your local browser</span>.</p>
-```
+Open the URL printed by KomaUI in your browser.
 
 ### Running on a server
 
-```@raw html
-<p>Run the same code in a Julia session on the <span style="color:var(--vp-c-yellow-1)">server</span>.</p>
-<p>Use the printed port (<code style="color:var(--vp-c-yellow-1)">9384</code> in this example) as the <span style="color:var(--vp-c-yellow-1)">server port</span> in the SSH command below.</p>
-<p>Run this on <strong style="color:var(--vp-c-indigo-1)">your local computer</strong>, replacing <code style="color:var(--vp-c-yellow-1)">user@server</code> (or SSH alias) with your SSH username and <span style="color:var(--vp-c-yellow-1)">server address</span>:</p>
-<div class="language-sh vp-adaptive-theme">
-  <button title="Copy Code" class="copy"></button><span class="lang">sh</span>
-  <pre><code>ssh -N -L <span style="color:var(--vp-c-indigo-1)">9384</span>:<span style="color:var(--vp-c-yellow-1)">127.0.0.1:9384 user@server</span></code></pre>
-</div>
-<p>Keep it running, then open <a href="http://localhost:9384" target="_blank" rel="noreferrer" style="color:var(--vp-c-indigo-1)">http://localhost:9384</a> in <span style="color:var(--vp-c-indigo-1)">your local browser</span>.</p>
+Start KomaUI on the server. Forward its printed port from your local computer:
+
+```sh
+ssh -N -L 9384:127.0.0.1:9384 user@server
 ```
+
+Keep the tunnel running and open `http://localhost:9384` locally.
+Replace `9384` and `user@server` with your port and SSH address.
 
 ## Controlling the UI from Julia (easier for AI agents)
 

@@ -1,6 +1,7 @@
 # Use Koma in Notebooks
 
-You can use **KomaMRI** with popular programming environments such as **Pluto** and **Jupyter** notebooks. The following sections show how to set up these notebooks and test **KomaMRI** with them.
+Run the same brain/EPI example as the [UI](1-1-use-koma-ui.md#Basic-Workflow)
+and [Julia script](1-3-use-koma-scripts.md#Basic-Workflow) guides in **Pluto** or **Jupyter**.
 
 
 ## Pluto
@@ -27,13 +28,8 @@ Next, create a new notebook by clicking on `+ Create a new notebook`:
 
 ![](../assets/pluto-empty-notebook.png){style="width:75%"}
 
-Write and run the following code, which is identical to the [Free Induction Decay example](#Free-Induction-Decay). **Pluto** automatically installs the required modules if they are not present on your system. Additionally, note that we do not directly use **KomaMRI** since we won't be utilizing the [`KomaUI`](@ref) function. Instead, we rely on the **KomaMRICore** and **KomaMRIPlots** dependencies:
-```@raw html
-<embed type="text/html" src="../assets/pluto-fid-example.html" style="height:1024px;width:100%;">
-```
-
-One of the most outstanding features of **Pluto** is its ability to ensure reproducibility by storing the information necessary to recreate the package environment in the notebook file. When others open your notebook with Pluto, it automatically ensures they use the exact same package environment, guaranteeing seamless functionality on their computers.
-
+Run the [basic workflow](#Basic-Workflow) below, with each code block in its own
+cell. Pluto installs the required packages and stores their environment in the notebook.
 
 ## Jupyter
 
@@ -46,11 +42,9 @@ julia>
 (@v1.13) pkg> add IJulia
 ```
 
-For this example, make sure to install **KomaMRICore** and **KomaMRIPlots** (we do not use **KomaMRI** directly since we won't be utilizing the `KomaUI()` function):
+Install the packages used by the workflow:
 ```julia-repl
-(@v1.13) pkg> add KomaMRICore
-
-(@v1.13) pkg> add KomaMRIPlots
+(@v1.13) pkg> add KomaMRI MAT
 ```
 
 Next, open **Jupyter**, navigate to a working folder, and create a new notebook by clicking on `New`, then selecting your installed Julia kernel (e.g. `Julia 1.13.1`).
@@ -61,37 +55,91 @@ A new, empty notebook will appear:
 
 ![](../assets/jupyter-empty-notebook.png){style="width:75%"}
 
-Proceed to write and execute the provided example:
+Run the [basic workflow](#Basic-Workflow) below, with each code block in its own
+cell. Plotly figures use the notebook's standard HTML display; no WebIO extension is needed.
 
-```@raw html
-<details><summary>View code</summary>
-```
+## Basic Workflow
+
+### Loading Simulation Inputs
+
+Use the default scanner, brain phantom, and EPI sequence. Zero off-resonance to
+match the UI's default phantom:
+
 ```julia
-# Import modules
-using KomaMRICore, KomaMRIPlots
-
-# Define sequence
-ampRF = 2e-6                        # 2 uT RF amplitude
-durRF = π / 2 / (2π * γ * ampRF)    # required duration for a 90 deg RF pulse
-exc = RF(ampRF, durRF)
-
-nADC = 8192         # number of acquisition samples
-durADC = 250e-3     # duration of the acquisition
-delay =  1e-3       # small delay
-acq = ADC(nADC, durADC, delay)
-
-seq = Sequence()
-@addblock seq += exc
-@addblock seq += acq
-
-# Plot the sequence
-plot_seq(seq; slider=false, height=300)
-```
-```@raw html
-</details>
+using KomaMRI, MAT
 ```
 
-![](../assets/jupyter-test-notebook.png)
+```julia
+sys = Scanner()
+```
 
+```julia
+begin
+    obj = brain_phantom2D()
+    obj.Δw .= 0
+end
+```
 
-This should be sufficient, and now you can start working with **KomaMRI** using **Jupyter** notebooks. Plotly figures use the notebook's standard HTML display and require no WebIO extension.
+```julia
+seq = PulseDesigner.EPI_example(; sys)
+```
+
+Display the phantom, sequence, and trajectory in separate cells:
+
+```julia
+plot_phantom_map(obj, :ρ)
+```
+
+```julia
+plot_seq(seq)
+```
+
+```julia
+plot_kspace(seq)
+```
+
+### Running Simulation
+
+```julia
+sim_params = KomaMRICore.default_sim_params()
+```
+
+```julia
+raw = simulate(obj, seq, sys; sim_params)
+```
+
+```julia
+plot_signal(raw)
+```
+
+### Reconstructing Image using MRIReco
+
+```julia
+rec_params = Dict{Symbol,Any}(:reco => "direct")
+```
+
+```julia
+result = reconstruct_with_labels(raw; rec_params)
+```
+
+```julia
+begin
+    Nx, Ny = raw.params["reconSize"][1:2]
+    image = reshape(first(result.images).image, Nx, Ny)
+    plot_image(image * (Nx * Ny))
+end
+```
+
+### Exporting Results
+
+```julia
+begin
+    save(ISMRMRDFile(joinpath(tempdir(), "data_raw.mrd")), raw)
+    MAT.matwrite(joinpath(tempdir(), "data_image.mat"), Dict("image" => image))
+end
+```
+
+For the same optional sphere and spiral examples, run the code in
+[Phantom](1-3-use-koma-scripts.md#Phantom) and
+[Sequence](1-3-use-koma-scripts.md#Sequence) in separate cells. These use `sphere`
+and `spiral`, leaving the brain/EPI inputs unchanged.

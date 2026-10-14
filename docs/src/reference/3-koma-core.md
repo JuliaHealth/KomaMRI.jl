@@ -47,7 +47,7 @@ fbig
 signal_to_raw_data
 ```
 
-## `SpinRepresentationState`'s
+## Spin state representations
 
 ```@docs
 Mag

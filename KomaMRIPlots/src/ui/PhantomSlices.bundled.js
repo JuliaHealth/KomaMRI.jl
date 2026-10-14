@@ -53,67 +53,49 @@ function mountSlices(graph, Plotly, onChange) {
                 },
                 opacity: 0.8
             };
-            const ticks = [
+            return (image ? [
+                0
+            ] : [
+                -thickness / 2,
                 0,
-                1
-            ].flatMap((edge)=>{
-                const start = edge ? -tickLength : 0, end = edge ? 0 : tickLength;
-                return [
-                    {
+                thickness / 2
+            ]).flatMap((offset)=>[
+                    0,
+                    1
+                ].flatMap((edge)=>{
+                    const start = edge ? -tickLength : 0, end = edge ? 0 : tickLength;
+                    const marker = {
                         ...tick,
-                        xref: x,
-                        x0: horizontal,
-                        x1: horizontal,
-                        yref: `${y} domain`,
-                        ysizemode: 'pixel',
-                        yanchor: edge,
-                        y0: start,
-                        y1: end
-                    },
-                    {
-                        ...tick,
-                        yref: y,
-                        y0: vertical,
-                        y1: vertical,
-                        xref: `${x} domain`,
-                        xsizemode: 'pixel',
-                        xanchor: edge,
-                        x0: start,
-                        x1: end
-                    }
-                ];
-            });
-            if (image) return ticks;
-            const slab = {
-                type: 'rect',
-                fillcolor: 'red',
-                opacity: 0.1,
-                line: {
-                    width: 0
-                },
-                layer: 'below'
-            };
-            return [
-                {
-                    ...slab,
-                    xref: x,
-                    yref: `${y} domain`,
-                    x0: horizontal - thickness / 2,
-                    x1: horizontal + thickness / 2,
-                    y0: 0,
-                    y1: 1
-                },
-                {
-                    ...slab,
-                    xref: `${x} domain`,
-                    yref: y,
-                    x0: 0,
-                    x1: 1,
-                    y0: vertical - thickness / 2,
-                    y1: vertical + thickness / 2
-                },
-                ...ticks
-            ];
+                        line: {
+                            ...tick.line,
+                            dash: offset ? '3px,3px' : 'solid'
+                        }
+                    };
+                    return [
+                        {
+                            ...marker,
+                            xref: x,
+                            x0: horizontal + offset,
+                            x1: horizontal + offset,
+                            yref: `${y} domain`,
+                            ysizemode: 'pixel',
+                            yanchor: edge,
+                            y0: start,
+                            y1: end
+                        },
+                        {
+                            ...marker,
+                            yref: y,
+                            y0: vertical + offset,
+                            y1: vertical + offset,
+                            xref: `${x} domain`,
+                            xsizemode: 'pixel',
+                            xanchor: edge,
+                            x0: start,
+                            x1: end
+                        }
+                    ];
+                }));
         });
         for (const slider of layout.sliders ?? [])if (slider.name?.startsWith('slice-')) slider.active = nearest(slider.steps, center[Number(slider.name.slice(6)) - 1]);
         const menu = layout.updatemenus?.find((item)=>item.name === 'slab-thickness');
@@ -289,47 +271,77 @@ function mountSlices(graph, Plotly, onChange) {
             };
             if (image) {
                 const size = graph._fullLayout._size, [x, y, z] = model.shape.map((n, i)=>n * model.spacing[i]);
-                const gap = 24, rowGap = 55, scale = Math.min((size.w - gap) / (x + z), (size.h - rowGap) / (y + z));
-                const left = (size.w - (x + z) * scale - 24) / 2, bottom = (size.h - (y + z) * scale - 55) / 2;
-                const right = left + x * scale + 24, top = bottom + z * scale + 55;
-                const rectangles = [
+                const minimumPanelWidth = Math.min(128, (size.w - 24) / 2), minimumPanelHeight = Math.min(100, (size.h - 60) / 2);
+                const scale = Math.min((size.w - 24) / (x + z), (size.h - 60) / (y + z), (size.w - 24 - minimumPanelWidth) / Math.max(x, z), (size.h - 60 - minimumPanelHeight) / Math.max(y, z));
+                const widths = [
+                    x,
+                    z
+                ].map((value)=>Math.max(minimumPanelWidth, value * scale));
+                const heights = [
+                    y,
+                    z
+                ].map((value)=>Math.max(minimumPanelHeight, value * scale));
+                const left = (size.w - widths[0] - widths[1] - 24) / 2, bottom = (size.h - heights[0] - heights[1] - 60) / 2;
+                const right = left + widths[0] + 24, top = bottom + heights[1] + 60;
+                const panels = [
                     [
                         left,
                         top,
-                        x * scale,
-                        y * scale
+                        widths[0],
+                        heights[0]
                     ],
                     [
                         right,
                         top,
-                        z * scale,
-                        y * scale
+                        widths[1],
+                        heights[0]
                     ],
                     [
                         left,
                         bottom,
-                        x * scale,
-                        z * scale
+                        widths[0],
+                        heights[1]
                     ]
                 ];
                 model.planes.forEach((plane, i)=>{
-                    const [a, b, w, h] = rectangles[i];
+                    const [a, b, w, h] = panels[i], [imageWidth, imageHeight] = plane.dimensions.map((axis)=>model.shape[axis - 1] * model.spacing[axis - 1] * scale);
+                    const imageLeft = a + (w - imageWidth) / 2, imageBottom = b + (h - imageHeight) / 2;
                     changes[`${plane.axes[0]}.domain`] = [
-                        a / size.w,
-                        (a + w) / size.w
+                        imageLeft / size.w,
+                        (imageLeft + imageWidth) / size.w
                     ];
                     changes[`${plane.axes[1]}.domain`] = [
-                        b / size.h,
-                        (b + h) / size.h
+                        imageBottom / size.h,
+                        (imageBottom + imageHeight) / size.h
                     ];
                     changes[`sliders[${i}].x`] = a / size.w;
                     changes[`sliders[${i}].len`] = w / size.w;
-                    changes[`sliders[${i}].y`] = b / size.h;
+                    changes[`sliders[${i}].y`] = imageBottom / size.h;
+                    for (const [name, edge] of [
+                        [
+                            'slice-title',
+                            0
+                        ],
+                        [
+                            'slice-position',
+                            1
+                        ]
+                    ]){
+                        const annotation = layout.annotations.find((item)=>item.name === `${name}-${plane.normal}`);
+                        if (annotation) Object.assign(annotation, {
+                            xref: 'paper',
+                            yref: 'paper',
+                            yanchor: 'bottom',
+                            yshift: 4,
+                            x: (a + edge * w) / size.w,
+                            y: (imageBottom + imageHeight) / size.h
+                        });
+                    }
                 });
                 changes.imageColorbar = {
-                    x: (right + z * scale / 2) / size.w,
-                    y: (bottom + z * scale / 2) / size.h,
-                    len: z * scale / size.h
+                    x: (right + widths[1] / 2) / size.w,
+                    y: (bottom + heights[1] / 2) / size.h,
+                    len: heights[1] / size.h
                 };
             }
             for (const key of [
@@ -499,7 +511,11 @@ function mountSlices(graph, Plotly, onChange) {
     graph.on('plotly_doubleclick', doubleClick);
     graph.on('plotly_afterplot', labelSliders);
     function resized(event) {
-        if (image && ('width' in event || 'height' in event)) changed();
+        if (image && [
+            'width',
+            'height',
+            'autosize'
+        ].some((key)=>key in event)) changed();
     }
     graph.on('plotly_relayout', resized);
     labelSliders();

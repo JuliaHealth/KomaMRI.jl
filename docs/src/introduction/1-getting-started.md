@@ -34,7 +34,7 @@ julia> KomaUI()
 ```
 The first time you use this command it may take more time than usual, but a window with the Koma GUI will pop up:
 
-![](../assets/ui-mainpage.png)
+![](../assets/gui-dashboard.png)
 
 The same UI can also be opened from the terminal with the [`koma` app](../how-to/1-4-use-koma-cli.md).
 
@@ -42,10 +42,10 @@ The user interface has some basic definitions for the scanner, phantom, and sequ
 
 As a simple demonstration, press the `Simulate!` button and wait until the simulation is ready. Now you have acquired the `Raw Signal` and you should see the following:
 
-![](../assets/ui-view-raw-data.png)
+![](../assets/gui-rawsignal-view.png)
 
 Then, press the `Reconstruct!` button and wait until the reconstruction ends. Now you have reconstructed an `Image` from the `Raw Signal` and you should see the following in the GUI:
 
-![](../assets/ui-view-abs-image.png)
+![](../assets/gui-image-view.png)
 
 Congratulations, you successfully simulated an MRI acquisition! 🎊

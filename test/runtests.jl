@@ -377,8 +377,10 @@ end
     @testset "Input and output files" begin
         path = @__DIR__
         repo = dirname(path)
-        phantom_file = joinpath(repo, "KomaMRIFiles", "test", "test_files", "phantom", "brain_nomotion_w.phantom")
+        phantom_file = joinpath(mktempdir(), "phantom.phantom")
+        write_phantom(Phantom(x=[0.0]), phantom_file)
         jemris_file = joinpath(repo, "KomaMRIFiles", "test", "test_files", "phantom", "column1d.h5")
+        # CLI phantom loading accepts native and JEMRIS files.
         @test KomaMRI.load_cli_phantom(phantom_file) isa KomaMRI.Phantom
         @test KomaMRI.load_cli_phantom(jemris_file) isa KomaMRI.Phantom
 
