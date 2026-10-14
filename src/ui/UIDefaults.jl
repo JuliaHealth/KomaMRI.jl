@@ -28,13 +28,6 @@ function setup_raw()
     )
 end
 
-const sys_ui = Observable{Scanner}(Scanner())
-const seq_ui = Observable{Sequence}(Sequence())
-const obj_ui = Observable{Phantom}(Phantom(x=[0.0]))
-const physio_ui = Observable{AbstractPhysioSignal}(NoPhysioSignal())
-const raw_ui = Observable{RawAcquisitionData}(setup_raw())
-const img_ui = Observable{AbstractArray{<:Complex}}([0.0im 0.; 0. 0.])
-
 default_physio_signal(seq) = has_trigger(seq) ? CardiacSignal(; heart_rate=1) : NoPhysioSignal()
 
 const MAX_UI_FILENAME_CHARS = 32

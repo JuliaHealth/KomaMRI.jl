@@ -15,19 +15,32 @@ Define colors for dark or light mode.
 """
 function theme_chooser(darkmode)
     if darkmode
-        bgcolor = "rgba(0,0,0,0)"#"rgb(13,16,17)"
+        bgcolor = "rgb(13,16,17)"
         text_color = "gray"
         plot_bgcolor = "rgb(22,26,29)" #"rgb(33,37,41)"
         grid_color = "rgb(40,52,66)" #rgb(40,40,40)
         sep_color = "white"
     else
-        bgcolor = "rgba(0,0,0,0)"#"white"
+        bgcolor = "white"
         text_color = "gray"#"rgb(49,70,101)"
         plot_bgcolor = "rgb(229,236,246)"
         grid_color = "white"
         sep_color = "black"
     end
     return bgcolor, text_color, plot_bgcolor, grid_color, sep_color
+end
+
+const PHASE_COLORSCALE = [
+    (0.0, "#d64d4d"), (1/6, "#c6af42"), (2/6, "#44b079"),
+    (3/6, "#469fc2"), (4/6, "#7861c5"), (5/6, "#bd59a2"), (1.0, "#d64d4d"),
+]
+
+const KSPACE_COLORSCALE = let
+    positions = range(0, 1; length=10)
+    hue = linear_interpolation(positions, [floor(Int, (1-t)*255) for t in positions])
+    # Match the legacy WebGL renderer, which parsed the HSV strings as HSL.
+    [(t, "#" * PlotlyBase.Colors.hex(PlotlyBase.Colors.HSL(hue(t), 1, 0.5)))
+        for t in range(0, 1; length=256)]
 end
 
 function generate_seq_time_layout_config(
@@ -71,7 +84,7 @@ function generate_seq_time_layout_config(
             color=text_color,
             activecolor=plot_bgcolor,
         ),
-        legend=attr(; orientation="h", yanchor="bottom", xanchor="left", y=1, x=0),
+        legend=attr(; orientation="h", yref="container", yanchor="top", xanchor="left", y=1, x=0),
         updatemenus=isempty(label_to_show) ? [] : [
             attr(
                 type="dropdown",
@@ -176,6 +189,19 @@ end
 _trigger_delays(::Extension) = ()
 _trigger_delays(trigger::Trigger) = (trigger.delay,)
 
+function trigger_name(trigger)
+    trigger.type == 1 && return "Digital output"
+    trigger.type == 2 && return "Input trigger"
+    return "Trigger (type $(trigger.type))"
+end
+
+function trigger_markers(seq, starts)
+    return [(; time=(starts[b] + delay) * 1e3,
+        label="$(trigger_name(extension)) · channel $(extension.channel)")
+        for b in eachindex(seq.DUR) for extension in seq.EXT[b]
+        for delay in _trigger_delays(extension)]
+end
+
 _ecg_gaussian(t, center, width) = exp(-0.5 * ((t - center) / width)^2)
 
 function _ecg_r_peaks(signal::CardiacSignal, t_start, t_end)
@@ -191,14 +217,22 @@ end
 
 function _ecg_waveform(t, signal::CardiacSignal)
     ecg = zeros(length(t))
+    # Beyond eight Gaussian widths, each component is below exp(-32) of its peak.
+    tail_widths = 8
+    beat_start = -0.200 - tail_widths * 0.035
+    beat_end = 0.280 + tail_widths * 0.070
     for r_peak in _ecg_r_peaks(signal, first(t), last(t))
-        relative_time = t .- r_peak
-        ecg .+=
-            0.12 .* _ecg_gaussian.(relative_time, -0.200, 0.035) .-
-            0.15 .* _ecg_gaussian.(relative_time, -0.040, 0.012) .+
-            1.00 .* _ecg_gaussian.(relative_time, 0.000, 0.010) .-
-            0.25 .* _ecg_gaussian.(relative_time, 0.035, 0.014) .+
-            0.30 .* _ecg_gaussian.(relative_time, 0.280, 0.070)
+        first_sample = searchsortedfirst(t, r_peak + beat_start)
+        last_sample = searchsortedlast(t, r_peak + beat_end)
+        @inbounds for i in first_sample:last_sample
+            relative_time = t[i] - r_peak
+            ecg[i] +=
+                0.12 * _ecg_gaussian(relative_time, -0.200, 0.035) -
+                0.15 * _ecg_gaussian(relative_time, -0.040, 0.012) +
+                1.00 * _ecg_gaussian(relative_time, 0.000, 0.010) -
+                0.25 * _ecg_gaussian(relative_time, 0.035, 0.014) +
+                0.30 * _ecg_gaussian(relative_time, 0.280, 0.070)
+        end
     end
     return ecg
 end
@@ -227,6 +261,7 @@ function _add_physio!(p, layout, scatter_fun, seq, signal::CardiacSignal, xaxis)
     ))
     layout.yaxis["domain"] = [0.12, 1.0]
     layout.xaxis["anchor"] = "y2"
+    layout.xaxis[:rangeslider][:visible] = false
     layout.yaxis2 = attr(;
         domain=[0.0, 0.09],
         anchor=xaxis,
@@ -239,42 +274,29 @@ function _add_physio!(p, layout, scatter_fun, seq, signal::CardiacSignal, xaxis)
     return nothing
 end
 
-"""
-    p = plot_seq(seq::Sequence; kwargs...)
+function stack_plot_samples(samples)
+    T = mapreduce(eltype, promote_type, samples)
+    values = Vector{Union{Missing,T}}(undef, sum(length, samples) + length(samples))
+    offset = 1
+    for sample in samples
+        copyto!(values, offset, sample, 1, length(sample))
+        offset += length(sample)
+        values[offset] = missing
+        offset += 1
+    end
+    return values
+end
 
-Plots a sequence struct.
 
-# Arguments
-- `seq`: (`::Sequence`) Sequence struct
 
-# Keywords
-- `width`: (`::Integer`, `=nothing`) plot width
-- `height`: (`::Integer`, `=nothing`) plot height
-- `slider`: (`::Bool`, `=true`) boolean to indicate whether to display a slider
-- `show_seq_blocks`: (`::Bool`, `=false`) boolean to indicate whether to display sequence blocks
-- `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
-- `range`: (`::Vector{Real}`, `=[]`) time range to be displayed initially
-- `title`: (`::String`, `=""`) plot title
-- `freq_in_phase`: (`::Bool`, `=true`) Include FM modulation in RF phase
-- `show_rf_frame`: (`::Bool`, `=false`) plot RF rotating-frame phase
-- `gl`: (`::Bool`, `=false`) use the Plotly `scattergl` trace (faster)
-- `max_rf_samples`: (`::Integer`, `=100`) maximum number of RF samples
-- `show_adc`: (`::Bool`, `=false`) plot ADC samples with markers
-- `physio`: (`=NoPhysioSignal()`) physiological signal used to resolve triggers
 
-# Returns
-- `p`: (`::PlotlyBase.Plot`) plot of the Sequence struct
 
-# Examples
-```julia-repl
-julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/1.sequences/spiral.seq")
 
-julia> seq = read_seq(seq_file)
 
-julia> plot_seq(seq)
-```
-"""
-function plot_seq(
+# Nonadaptive Plotly figure builders, also reused by adaptive time plots.
+const RF_CENTER_MARKER = (color="#FF0000", symbol="x")
+
+function plot_seq_nonadaptive(
     seq::Sequence;
     width=nothing,
     height=nothing,
@@ -300,21 +322,17 @@ function plot_seq(
     scatter_fun = gl ? scattergl : scatter
     usrf(x) = length(x) > max_rf_samples ? ([@view x[1]; @view x[2:(length(x)÷max_rf_samples):end-1]; @view x[end]]) : x
     usadc(x; ampl_edge=1.0) = show_adc || isempty(x) ? x : [ampl_edge * first(x); 1.0 * first(x); 1.0 * last(x); ampl_edge * last(x)]
-    # Get the samples of the events in the sequence
-    seq_samples = [get_samples(seq, i; freq_in_phase) for i in 1:length(seq)]
+    # Sample blocks locally so their start times are not recomputed for the full sequence.
+    T0 = get_block_start_times(seq)
+    seq_samples = [get_samples(block; freq_in_phase) for block in seq]
     stack_samples(name; amp=identity, time=identity) = (
-        A=reduce(vcat, [amp(getproperty(block, name).A); missing] for block in seq_samples),
-        t=reduce(vcat, [time(getproperty(block, name).t); missing] for block in seq_samples),
+        A=stack_plot_samples([amp(getproperty(block, name).A) for block in seq_samples]),
+        t=stack_plot_samples([time(T0[i] .+ getproperty(block, name).t)
+            for (i, block) in enumerate(seq_samples)]),
     )
     active(values, enabled) = enabled ? values : fill(missing, length(values))
-    # Get block start times
-    T0 = get_block_start_times(seq)
-    trigger_times = [
-        (T0[i] + delay) * 1e3
-        for (i, extensions) in enumerate(seq.EXT)
-        for extension in extensions
-        for delay in _trigger_delays(extension)
-    ]
+    triggers = trigger_markers(seq, T0)
+    trigger_times = getproperty.(triggers, :time)
     # Get center times
     center_times = similar(T0, 0)
     center_values = ComplexF64[]
@@ -467,7 +485,7 @@ function plot_seq(
             legendgroup="RF_center",
             showlegend=showlegend,
             mode="markers",
-            marker=attr(; color="#FF0000", symbol="x"),
+            marker=attr(; RF_CENTER_MARKER...),
         )
     end
 
@@ -489,7 +507,7 @@ function plot_seq(
     ###### show label
     ############################
     bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
-  
+
     d = [ seq[i].DUR[1] for i in eachindex(seq.DUR)]
     d2 = [0;d]
     dcum = cumsum(d2)
@@ -511,6 +529,7 @@ function plot_seq(
             showlegend=false,
             mode=("markers"),
             marker=attr(; color=sep_color, symbol="x"),
+            meta=attr(; theme="contrast"),
             visible=false,
         )
     end
@@ -530,16 +549,20 @@ function plot_seq(
         label_to_show = label_symbols,
         non_label_count = adc_idx
     )
+    l.xaxis[:rangeslider] = attr(;
+        visible=slider, autorange=false, range=[0, dur(seq) * 1e3]
+    )
 
     if !isempty(trigger_times)
         hover_positions = LinRange(0.0, 1.0, 51)
-        trigger_x = reduce(vcat, (fill(time, length(hover_positions)) for time in trigger_times))
+        trigger_x = repeat(trigger_times; inner=length(hover_positions))
         trigger_y = repeat(hover_positions, length(trigger_times))
         push!(p, scatter_fun(;
             x=trigger_x,
             y=trigger_y,
             name="Trigger",
-            hovertemplate="Trigger: %{x:.4f} ms<extra></extra>",
+            text=repeat(getproperty.(triggers, :label); inner=length(hover_positions)),
+            hovertemplate="%{text}: %{x:.4f} ms<extra></extra>",
             xaxis=xaxis,
             yaxis="y3",
             showlegend=false,
@@ -572,40 +595,11 @@ function plot_seq(
     return PlotlyBase.Plot(p, l; config)
 end
 
-"""
-    p = plot_M0(seq::Sequence; kwargs...)
-
-Plots the zero order moment (M0) of a Sequence struct.
-
-# Arguments
-- `seq`: (`::Sequence`) Sequence struct
-
-# Keywords
-- `width`: (`::Integer`, `=nothing`) plot width
-- `height`: (`::Integer`, `=nothing`) plot height
-- `slider`: (`::Bool`, `=true`) boolean to indicate whether to display a slider
-- `show_seq_blocks`: (`::Bool`, `=false`) boolean to indicate whether to display sequence blocks
-- `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
-- `range`: (`::Vector{Real}`, `=[]`) time range to be displayed initially
-- `title`: (`::String`, `=""`) plot title
-
-# Returns
-- `p`: (`::PlotlyBase.Plot`) plot of the moment M0 of the Sequence struct
-
-# Examples
-```julia-repl
-julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/1.sequences/spiral.seq")
-
-julia> seq = read_seq(seq_file)
-
-julia> plot_M0(seq)
-```
-"""
-function plot_M0(
+function plot_M0_nonadaptive(
     seq::Sequence;
     width=nothing,
     height=nothing,
-    slider=true,
+    slider=false,
     show_seq_blocks=false,
     darkmode=false,
     range=[],
@@ -648,7 +642,7 @@ function plot_M0(
         x=t[rf_idx] * 1e3,
         y=t[rf_idx] * 0,
         name="RF_center",
-        marker=attr(; symbol="cross", size=8, color="orange"),
+        marker=attr(; RF_CENTER_MARKER...),
         mode="markers",
         text=string.(rf_types)
     )
@@ -659,40 +653,11 @@ function plot_M0(
     return PlotlyBase.Plot(p, l; config)
 end
 
-"""
-    p = plot_M1(seq::Sequence; kwargs...)
-
-Plots the first order moment (M1) of a Sequence struct.
-
-# Arguments
-- `seq`: (`::Sequence`) Sequence struct
-
-# Keywords
-- `width`: (`::Integer`, `=nothing`) plot width
-- `height`: (`::Integer`, `=nothing`) plot height
-- `slider`: (`::Bool`, `=true`) boolean to indicate whether to display a slider
-- `show_seq_blocks`: (`::Bool`, `=false`) boolean to indicate whether to display sequence blocks
-- `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
-- `range`: (`::Vector{Real}`, `=[]`) time range to be displayed initially
-- `title`: (`::String`, `=""`) plot title
-
-# Returns
-- `p`: (`::PlotlyBase.Plot`) plot of the moment M1 of the Sequence struct
-
-# Examples
-```julia-repl
-julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/1.sequences/spiral.seq")
-
-julia> seq = read_seq(seq_file)
-
-julia> plot_M1(seq)
-```
-"""
-function plot_M1(
+function plot_M1_nonadaptive(
     seq::Sequence;
     width=nothing,
     height=nothing,
-    slider=true,
+    slider=false,
     show_seq_blocks=false,
     darkmode=false,
     range=[],
@@ -735,7 +700,7 @@ function plot_M1(
         x=t[rf_idx] * 1e3,
         y=t[rf_idx] * 0,
         name="RF_center",
-        marker=attr(; symbol="cross", size=8, color="orange"),
+        marker=attr(; RF_CENTER_MARKER...),
         mode="markers",
         text=string.(rf_types)
     )
@@ -746,40 +711,11 @@ function plot_M1(
     return PlotlyBase.Plot(p, l; config)
 end
 
-"""
-    p = plot_M2(seq::Sequence; kwargs...)
-
-Plots the second order moment (M2) of a Sequence struct.
-
-# Arguments
-- `seq`: (`::Sequence`) Sequence struct
-
-# Keywords
-- `width`: (`::Integer`, `=nothing`) plot width
-- `height`: (`::Integer`, `=nothing`) plot height
-- `slider`: (`::Bool`, `=true`) boolean to indicate whether to display a slider
-- `show_seq_blocks`: (`::Bool`, `=false`) boolean to indicate whether to display sequence blocks
-- `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
-- `range`: (`::Vector{Real}`, `=[]`) time range to be displayed initially
-- `title`: (`::String`, `=""`) plot title
-
-# Returns
-- `p`: (`::PlotlyBase.Plot`) plot of the moment M2 of the Sequence struct
-
-# Examples
-```julia-repl
-julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/1.sequences/spiral.seq")
-
-julia> seq = read_seq(seq_file)
-
-julia> plot_M2(seq)
-```
-"""
-function plot_M2(
+function plot_M2_nonadaptive(
     seq::Sequence;
     width=nothing,
     height=nothing,
-    slider=true,
+    slider=false,
     show_seq_blocks=false,
     darkmode=false,
     range=[],
@@ -822,7 +758,7 @@ function plot_M2(
         x=t[rf_idx] * 1e3,
         y=t[rf_idx] * 0,
         name="RF_center",
-        marker=attr(; symbol="cross", size=8, color="orange"),
+        marker=attr(; RF_CENTER_MARKER...),
         mode="markers",
         text=string.(rf_types)
     )
@@ -833,44 +769,13 @@ function plot_M2(
     return PlotlyBase.Plot(p, l; config)
 end
 
-"""
-    p = plot_eddy_currents(seq::Sequence, λ; kwargs...)
-
-Plots the eddy currents of a Sequence struct.
-
-# Arguments
-- `seq`: (`::Sequence`) Sequence struct
-- `λ`: (`::Real`, `[s]`) time constant for the decay of Eddy currents
-
-# Keywords
-- `α`: (`::Vector{Real}`, `=ones(size(λ))`) eddy currents factors
-- `width`: (`::Integer`, `=nothing`) plot width
-- `height`: (`::Integer`, `=nothing`) plot height
-- `slider`: (`::Bool`, `=true`) boolean to indicate whether to display a slider
-- `show_seq_blocks`: (`::Bool`, `=false`) boolean to indicate whether to display sequence blocks
-- `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
-- `range`: (`::Vector{Real}`, `=[]`) time range to be displayed initially
-- `title`: (`::String`, `=""`) plot title
-
-# Returns
-- `p`: (`::PlotlyBase.Plot`) plot of the Eddy currents of the Sequence struct
-
-# Examples
-```julia-repl
-julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/1.sequences/spiral.seq")
-
-julia> seq = read_seq(seq_file)
-
-julia> plot_eddy_currents(seq, 80e-3)
-```
-"""
-function plot_eddy_currents(
+function plot_eddy_currents_nonadaptive(
     seq::Sequence,
     λ;
     α=ones(size(λ)),
     width=nothing,
     height=nothing,
-    slider=true,
+    slider=false,
     show_seq_blocks=false,
     darkmode=false,
     range=[],
@@ -920,40 +825,11 @@ function plot_eddy_currents(
     return PlotlyBase.Plot(p, l; config)
 end
 
-"""
-    p = plot_slew_rate(seq::Sequence; kwargs...)
-
-Plots the slew rate currents of a Sequence struct.
-
-# Arguments
-- `seq`: (`::Sequence`) Sequence struct
-
-# Keywords
-- `width`: (`::Integer`, `=nothing`) plot width
-- `height`: (`::Integer`, `=nothing`) plot height
-- `slider`: (`::Bool`, `=true`) boolean to indicate whether to display a slider
-- `show_seq_blocks`: (`::Bool`, `=false`) boolean to indicate whether to display sequence blocks
-- `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
-- `range`: (`::Vector{Real}`, `=[]`) time range to be displayed initially
-- `title`: (`::String`, `=""`) plot title
-
-# Returns
-- `p`: (`::PlotlyBase.Plot`) plot of the slew rate currents of the Sequence struct
-
-# Examples
-```julia-repl
-julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/1.sequences/spiral.seq")
-
-julia> seq = read_seq(seq_file)
-
-julia> plot_slew_rate(seq)
-```
-"""
-function plot_slew_rate(
+function plot_slew_rate_nonadaptive(
     seq::Sequence;
     width=nothing,
     height=nothing,
-    slider=true,
+    slider=false,
     show_seq_blocks=false,
     darkmode=false,
     range=[],
@@ -961,11 +837,11 @@ function plot_slew_rate(
 )
     #Times
     seqd = KomaMRIBase.discretize(seq; sampling_rule=KomaMRIBase.MaxStepSizeRule(1, 5e-5))
-    ts = seqd.t[2:end]
+    ts = seqd.t
     T0 = get_block_start_times(seq)
-    #Eddy currents per lambda
     k, _ = KomaMRIBase.get_slew_rate(seqd)
-    #Plot eddy currents
+    # Each slew value belongs to the interval ending at its timestamp.
+    k = vcat(k[1:1, :], k)
     p = [scatter() for j in 1:4]
     p[1] = scatter(;
         x=ts * 1e3,
@@ -973,6 +849,8 @@ function plot_slew_rate(
         hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m/ms)",
         name="SRx",
         legendgroup="Gx",
+        mode="lines",
+        line_shape="vh",
         marker=attr(; color="#636EFA"),
     )
     p[2] = scatter(;
@@ -981,6 +859,8 @@ function plot_slew_rate(
         hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m/ms)",
         name="SRy",
         legendgroup="Gy",
+        mode="lines",
+        line_shape="vh",
         marker=attr(; color="#EF553B"),
     )
     p[3] = scatter(;
@@ -989,6 +869,8 @@ function plot_slew_rate(
         hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m/ms)",
         name="SRz",
         legendgroup="Gz",
+        mode="lines",
+        line_shape="vh",
         marker=attr(; color="#00CC96"),
     )
     #Layout and config
@@ -998,21 +880,28 @@ function plot_slew_rate(
     return PlotlyBase.Plot(p, l; config)
 end
 
+
 """
     p = plot_image(image; height, width, zmin, zmax, darkmode, title)
 
-Plots an image matrix.
+Plot real image values directly. Volumes show linked x–y, z–y and x–z planes.
+Complex images initially show magnitude and include
+Magnitude/Phase buttons below the plot. Single-column images are shown as line profiles.
 
 # Arguments
-- `image`: (`::Matrix{Number}`) image matrix
+- `image`: a real or complex image matrix or volume
 
 # Keywords
 - `width`: (`::Integer`, `=nothing`) plot width
 - `height`: (`::Integer`, `=nothing`) plot height
-- `zmin`: (`::Real`, `=minimum(abs.(image[:]))`) reference value for minimum color
-- `zmax`: (`::Real`, `=maximum(abs.(image[:]))`) reference value for maximum color
+- `zmin`, `zmax`: color limits; for complex images these apply to magnitude only
+- `colorscale`: (`="Greys"`) color scale for real values or magnitude;
+  phase uses a cyclic scale over `[-π, π]` radians
 - `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
 - `title`: (`::String`, `=""`) plot title
+- `spacing=(1,1,1)`: voxel spacing for volumes; axes display voxel indices
+
+Middle-button drag adjusts window width horizontally and level vertically. Double-click resets window and zoom; phase keeps its fixed scale.
 
 # Returns
 - `p`: (`::PlotlyBase.Plot`) plot of the image matrix
@@ -1055,7 +944,16 @@ function plot_image(
         l.width = width
     end
     #Plot
-    p = heatmap(; z=image, transpose=false, zmin=zmin, zmax=zmax, colorscale=colorscale)
+    p = if size(image, 2) == 1
+        l[:xaxis][:title] = "Index"
+        l[:yaxis] = attr(; title="Magnitude", range=[zmin, zmax], scaleanchor=false,
+            gridcolor=grid_color, zerolinecolor=grid_color)
+        l[:margin] = attr(; t=50, l=60, r=20, b=50)
+        scatter(; x=0:(length(image) - 1), y=vec(image), mode="lines", line_color="#2a7fb8")
+    else
+        heatmap(; z=collect(eachcol(image)), transpose=false, zmin=zmin, zmax=zmax,
+            meta=Dict(:image_window=>[zmin,zmax]), colorscale=colorscale, hoverinfo="x+y+z")
+    end
     config = PlotConfig(;
         displaylogo=false,
         toImageButtonOptions=attr(;
@@ -1072,11 +970,59 @@ function plot_image(
             "zoomOut",
         ],
     )
-    return PlotlyBase.Plot(p, l; config)
+    return pluto_plot(PlotlyBase.Plot(p, l; config))
+end
+
+function plot_image(image::AbstractArray{<:Complex}; kwargs...)
+    magnitude = plot_image(abs.(image); kwargs...)
+    phase_limit = Float64(π)
+    phase = plot_image(angle.(image); kwargs..., zmin=-phase_limit, zmax=phase_limit, colorscale=PHASE_COLORSCALE)
+    profile = ndims(image) < 3 && size(image, 2) == 1
+    if profile
+        lower, upper = magnitude.layout[:yaxis][:range]
+        magnitude.layout[:yaxis][:range] = [lower, 1.1 * upper]
+        phase.layout[:yaxis][:title] = "Phase (rad)"
+    else
+        for trace in phase.data
+            delete!(trace.fields, :meta)
+            colorbar = get!(trace.fields,:colorbar,attr())
+            colorbar[:title] = attr(; text="rad")
+            colorbar[:tickvals] = [-phase_limit,-phase_limit/2,0,phase_limit/2,phase_limit]
+            colorbar[:ticktext] = ["−π","−π/2","0","π/2","π"]
+        end
+    end
+    components = (magnitude, phase)
+    traces = reduce(vcat, [component.data for component in components])
+    count = length(magnitude.data)
+    for (index, trace) in enumerate(traces)
+        trace[:visible] = index <= count
+    end
+    layout = magnitude.layout
+    if haskey(get(layout,:meta,Dict()),"image_slices")
+        model = layout[:meta]["image_slices"]
+        layout[:meta]["image_slices"] = (; model...,values=[model.values;phase.layout[:meta]["image_slices"].values])
+        for (index,trace) in enumerate(traces)
+            trace[:uid] = "image-component-$index"
+        end
+    end
+    layout[:showlegend] = false
+    layout[:margin][:b] = 100
+    layout[:updatemenus] = [attr(;
+        name="image-component", type="buttons", direction="right",
+        x=0.5, xanchor="center", y=0, yanchor="top", pad=attr(; t=50),
+        bgcolor="#2a7fb8", bordercolor="#2a7fb8", font=attr(; color="white"),
+        showactive=true, active=0,
+        buttons=[attr(; label, method="update", args=[
+            attr(; visible=[fill(index == 1,count); fill(index == 2,count)]),
+            profile ? Dict("yaxis.range" => components[index].layout[:yaxis][:range],
+                "yaxis.title" => components[index].layout[:yaxis][:title]) : attr(),
+        ]) for (index, label) in enumerate(("Magnitude", "Phase"))],
+    )]
+    return pluto_plot(PlotlyBase.Plot(traces, layout; config=magnitude.config))
 end
 
 """
-    p = plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=false, view_2d=false)
+    p = plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=false, view_2d=false, adaptive=false, adaptive_navigator=false, physio=NoPhysioSignal())
 
 Plots the k-space of a Sequence struct.
 
@@ -1088,9 +1034,17 @@ Plots the k-space of a Sequence struct.
 - `height`: (`::Integer`, `=nothing`) plot height
 - `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
 - `view_2d`: (`::Bool`, `=false`) boolean to indicate whether to use a 2D kx/ky plot
+- `physio=NoPhysioSignal()`: physiological signal used to resolve trigger waits and ADC times
+- `adaptive=false`: use an experimental live `SpatialPlot` when true. Julia retains
+  the full trajectory; zoom/rotation fetch bounded sets of original segments and ADCs.
+- `adaptive_navigator=false`: show a compact adaptive sequence navigator when true, without
+  a legend or secondary slider. Zoom its time axis to filter k-space after dragging
+  stops; colors retain their global ADC sample count. The sequence navigator requires a running Julia
+  session in both k-space modes.
 
 # Returns
-- `p`: (`::PlotlyBase.Plot`) plot of the k-space of the Sequence struct
+- `p`: `PlotlyBase.Plot` with `adaptive=false`, or live `SpatialPlot` otherwise.
+  Adaptive updates require the Julia session to remain running.
 
 # Examples
 ```julia-repl
@@ -1101,24 +1055,19 @@ julia> seq = read_seq(seq_file)
 julia> plot_kspace(seq)
 ```
 """
-function plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=false, view_2d=false)
-    bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
+function plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=false, view_2d=false,
+    adaptive=false, adaptive_navigator=false, physio=NoPhysioSignal())
+    seq = resolve_triggers(seq, physio)
+    (adaptive || adaptive_navigator) && return kspace_spatial_plot(seq; width, height, darkmode, view_2d, adaptive, adaptive_navigator)
     #Calculations of theoretical k-space
     kspace, kspace_adc = get_kspace(seq; sampling_rule=KomaMRIBase.MaxStepSizeRule(1, 5e-5))
     t_adc = KomaMRIBase.get_adc_sampling_times(seq)
-    #Colormap
-    c_map = [[t, "hsv($(floor(Int,(1-t)*255)), 100, 50)"] for t in range(0, 1; length=10)] # range(s,b,N) only works in Julia 1.7.3
+    return pluto_plot(kspace_plot(kspace, kspace_adc, t_adc, length(t_adc); width, height, darkmode, view_2d))
+end
+
+function kspace_plot(kspace, kspace_adc, t_adc, num_adc; width, height, darkmode, view_2d)
+    bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
     c = "gray"
-    c2_idx = []
-    counter = 0
-    for s in seq
-        if is_ADC_on(s)
-            N = s.ADC.N[1]
-            append!(c2_idx, counter:(N + counter - 1))
-            counter += N
-        end
-    end
-    c2 = interp_map(c_map, c2_idx ./ maximum(c2_idx))
     #Layout
     mink = minimum(kspace_adc; dims=1)
     maxk = maximum(kspace_adc; dims=1)
@@ -1135,7 +1084,7 @@ function plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=fals
         color=text_color,
         activecolor=plot_bgcolor,
     )
-    legend = attr(; orientation="h", yanchor="bottom", xanchor="left", y=1, x=0)
+    legend = attr(; orientation="h", yref="container", yanchor="top", xanchor="left", y=1, x=0)
     if view_2d
         l = Layout(;
             paper_bgcolor=bgcolor,
@@ -1173,9 +1122,9 @@ function plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=fals
                 y=kspace_adc[:, 2],
                 text=round.(t_adc * 1e3, digits=3),
                 mode="markers",
-                marker=attr(; color=c2, size=4),
+                marker=attr(; size=4),
                 name="ADC",
-                hovertemplate="kx: %{x:.1f} m⁻¹<br>ky: %{y:.1f} m⁻¹<br><b>t_acq</b>: %{text} ms<extra></extra>",
+                hovertemplate="ADC count: %{marker.color}<br>kx: %{x:.1f} m⁻¹<br>ky: %{y:.1f} m⁻¹<br><b>t_acq</b>: %{text} ms<extra></extra>",
             ),
             scattergl(;
                 x=[0], y=[0], mode="markers", name="k=0",
@@ -1233,13 +1182,12 @@ function plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=fals
                 z=kspace_adc[:, 3],
                 text=round.(t_adc * 1e3, digits=3),
                 mode="markers",
-                line=attr(; color=c2),
                 marker=attr(; size=2),
                 name="ADC",
-                hovertemplate="kx: %{x:.1f} m⁻¹<br>ky: %{y:.1f} m⁻¹<br>kz: %{z:.1f} m⁻¹<br><b>t_acq</b>: %{text} ms<extra></extra>",
+                hovertemplate="ADC count: %{marker.color}<br>kx: %{x:.1f} m⁻¹<br>ky: %{y:.1f} m⁻¹<br>kz: %{z:.1f} m⁻¹<br><b>t_acq</b>: %{text} ms<extra></extra>",
             ),
             scatter3d(;
-                x=[0], y=[0], z=[0], name="k=0",
+                x=[0], y=[0], z=[0], mode="markers", name="k=0",
                 marker=attr(; symbol="cross", size=10, color="red"),
             ),
         ]
@@ -1252,6 +1200,13 @@ function plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=fals
             "resetCameraDefault3d",
         ]
     end
+    p[2][:marker][:color] = collect(0:length(t_adc)-1)
+    p[2][:marker][:colorscale] = KSPACE_COLORSCALE
+    p[2][:marker][:cmin] = 0
+    p[2][:marker][:cmax] = max(num_adc - 1, 1)
+    p[2][:marker][:showscale] = true
+    p[2][:marker][:colorbar] = attr(; title=attr(; text="ADC count", side="right"), thickness=12, len=0.6,
+        tickformat="~s", outlinewidth=0)
     if height !== nothing
         l.height = height
     end
@@ -1275,20 +1230,31 @@ Plots a phantom map for a specific spin parameter given by `key`.
 
 # Arguments
 - `obj`: (`::Phantom`) Phantom struct
-- `key`: (`::Symbol`, opts: [`:ρ`, `:T1`, `:T2`, `:T2s`, `:x`, `:y`, `:z`]) symbol for
+- `key`: (`::Symbol`, opts: [`:ρ`, `:T1`, `:T2`, `:T2s`, `:x`, `:y`, `:z`, `:speed`, `:vx`, `:vy`, `:vz`]) symbol for
     displaying different parameters of the phantom spins
+    (`:speed` and signed velocity components use frame-to-frame displacement in cm/s;
+    components use blue/white/red for negative/zero/positive with fixed symmetric limits.
+    Exiting spins flash magenta before a reset and cyan upon re-entry;
+    reset jumps are excluded from the velocity scale).
 
-# Keywords
-- `height`: (`::Integer`, `=600`) plot height
+# Keywords — both modes
+- `adaptive=false`: return a self-contained `PlotlyBase.Plot`; `true` returns a live
+  [`SpatialPlot`](@ref), requiring Julia for zoom, camera and time updates.
+- `height`: (`::Integer`, `=700`) plot height
 - `width`: (`::Integer`, `=nothing`) plot width
 - `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
-- `view_2d`: (`::Bool`, `=false`) boolean to indicate whether to use a 2D scatter plot
+- `view_2d`: use a 2D scatter plot; defaults to true for fewer than three spatial dimensions
 - `colorbar`: (`::Bool`, `=true`) boolean to indicate whether to display a colorbar
-- `max_spins`:(`::Int`, `=20_000`) maximum number of displayed spins
-- `time_samples`:(`::Int`, `=0`) intermediate time samples between motion `t_start` and `t_end`
+- `time_samples=0`: add an evenly spaced time grid to the native motion timepoints;
+  duplicates are removed, and native timepoints are never discarded. Static phantoms
+  have one frame. Nonadaptive plots embed every resulting frame.
+
+# Keywords — only `adaptive=false`
+- `max_spins`: cap the embedded spin subset; defaults to 20,000 when omitted.
+  Passing it with `adaptive=true` throws `ArgumentError`.
 
 # Returns
-- `p`: (`::PlotlyBase.Plot`) plot of the phantom map for a specific spin parameter
+- `p`: `PlotlyBase.Plot` when `adaptive=false`, otherwise [`SpatialPlot`](@ref)
 
 # References
 Colormaps from https://github.com/markgriswold/MRFColormaps
@@ -1303,289 +1269,22 @@ julia> plot_phantom_map(obj2D, :ρ)
 julia> plot_phantom_map(obj3D, :ρ)
 ```
 """
-function plot_phantom_map(
-    obj::Phantom,
-    key::Symbol;
-    height=700,
-    width=nothing,
-    darkmode=false,
-    view_2d=sum(KomaMRIBase.get_dims(obj)) < 3,
-    colorbar=true,
-    max_spins=20_000,
-    time_samples= obj.motion isa NoMotion ? 0 : length(times(obj.motion)),
-    kwargs...,
-)
-    function process_times(::NoMotion)
-        return [zero(eltype(obj.x))]
-    end
-
-    function process_times(motion)
-        time_nodes = times(motion)
-        if length(time_nodes) > 1
-            time_min, time_max = minimum(time_nodes), maximum(time_nodes)
-            t = collect(range(time_min, time_max, length=time_samples))
-            merged_times = sort(unique([t; time_nodes]))
-            if length(merged_times) > time_samples
-                to_keep = time_nodes
-                remaining = setdiff(merged_times, to_keep)
-                num_needed = time_samples - length(to_keep)
-                extra = remaining[round.(Int, range(1, length(remaining), length=num_needed))]
-                merged_times = sort([to_keep; extra])
-            elseif length(merged_times) < time_samples
-                extra_points = setdiff(t, merged_times)
-                extra_needed = time_samples - length(merged_times)
-                additional = sort(extra_points)[1:extra_needed]
-                merged_times = sort([merged_times; additional])
-            end
-            return merged_times
-        else
-            return time_nodes
-        end
-    end
-    
-    function decimate_uniform_phantom(obj, num_points::Int)
-        ss = Int(ceil(length(obj) / num_points))
-        return obj[1:ss:end]
-    end
-
-    if length(obj) > max_spins
-        obj = decimate_uniform_phantom(obj, max_spins)
-        @warn "For performance reasons, the number of displayed spins was capped to `max_spins`=$(max_spins)."
-    end
-
-    path = @__DIR__
-    cmin_key = minimum(getproperty(obj, key))
-    cmax_key = maximum(getproperty(obj, key))
-    if key == :T1 || key == :T2 || key == :T2s
-        cmin_key = 0
-        factor = 1e3
-        unit = " ms"
-        if key == :T1
-            cmax_key = 2500 / factor
-            colors =
-                replace.(string.(relaxationColorMap("T1") .* 255), "RGB{Float64}" => "rgb")
-            N = length(colors)
-            indices = range(0.0; stop=1.0, length=N)
-            colormap = [(idx, color) for (idx, color) in zip(indices, colors)]
-        elseif key == :T2 || key == :T2s
-            if key == :T2
-                cmax_key = 250 / factor
-            end
-            colors =
-                replace.(string.(relaxationColorMap("T2") .* 255), "RGB{Float64}" => "rgb")
-            N = length(colors)
-            indices = range(0.0; stop=1.0, length=N)
-            colormap = [(idx, color) for (idx, color) in zip(indices, colors)]
-        end
-    elseif key == :x || key == :y || key == :z
-        factor = 1e2
-        unit = " cm"
-        colormap = "Greys"
-    elseif key == :Δw
-        factor = 1 / (2π)
-        unit = " Hz"
-        colormap = "Greys"
-    else
-        factor = 1
-        cmin_key = 0
-        unit = ""
-        colormap = "Greys"
-    end
-    cmin_key = get(kwargs, :zmin, factor * cmin_key)
-    cmax_key = get(kwargs, :zmax, factor * cmax_key)
-
-    t = process_times(obj.motion)
-    x, y, z = get_spin_coords(obj.motion, obj.x, obj.y, obj.z, t')
-
-    x0 = -maximum(abs.([x y z])) * 1e2
-    xf = maximum(abs.([x y z])) * 1e2
-
-    traces = GenericTrace[]
-
-    bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
-
-    l = Layout(;title=obj.name*": "*string(key))
-
-    if view_2d # 2D
-        function get_displayed_dims(v)
-            if sum(v) == 1
-                idx = argmax(v)[1] 
-                return [idx in [1, 3], idx in [1, 2], idx in [2,3]]
-            else
-                return v
-            end
-        end 
-
-        # Layout config
-        dims = get_displayed_dims(KomaMRIBase.get_dims(obj))
-        axis = ["x", "y", "z"][dims]
-        
-        l[:xaxis] = attr(
-            title=axis[1],
-            range=[x0, xf],
-            ticksuffix=" cm",
-            backgroundcolor=plot_bgcolor,
-            gridcolor=grid_color,
-            zerolinecolor=grid_color,
-            scaleanchor="y"
-        )
-        l[:yaxis] = attr(
-            title=axis[2],
-            range=[x0, xf],
-            ticksuffix=" cm",
-            backgroundcolor=plot_bgcolor,
-            gridcolor=grid_color,
-            zerolinecolor=grid_color,
-            scaleratio=1
-        )
-        l[:autosize] = true
-        # Add traces
-        for i in 1:length(t)
-            push!(traces, scattergl( 
-                x=dims[1]           ? (x[:,i])*1e2 : (y[:,i])*1e2,
-                y=dims[1] & dims[2] ? (y[:,i])*1e2 : (z[:,i])*1e2,
-                mode="markers",
-                marker=attr(color=getproperty(obj,key)*factor,
-                            showscale=colorbar,
-                            colorscale=colormap,
-                            colorbar=attr(ticksuffix=unit, title=string(key)),
-                            cmin=cmin_key,
-                            cmax=cmax_key,
-                            size=4
-                            ),
-                visible=i==1,
-                showlegend=false,
-                text=round.(getproperty(obj,key)*factor,digits=4),
-                hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>"))
-        end
-    else # 3D
-        # Layout config
-        l[:scene] = attr(
-            xaxis=attr(
-                title="x",
-                range=[x0, xf],
-                fixedrange=true,
-                ticksuffix=" cm",
-                backgroundcolor=plot_bgcolor,
-                gridcolor=grid_color,
-                zerolinecolor=grid_color,
-            ),
-            yaxis=attr(
-                title="y",
-                range=[x0, xf],
-                fixedrange=true,
-                ticksuffix=" cm",
-                backgroundcolor=plot_bgcolor,
-                gridcolor=grid_color,
-                zerolinecolor=grid_color,
-            ),
-            zaxis=attr(
-                title="z",
-                range=[x0, xf],
-                fixedrange=true,
-                ticksuffix=" cm",
-                backgroundcolor=plot_bgcolor,
-                gridcolor=grid_color,
-                zerolinecolor=grid_color,
-            ),
-            aspectmode="manual",
-            aspectratio=attr(; x=1, y=1, z=1),
-        )
-        # Add traces
-        for i in 1:length(t)
-            push!(traces, scatter3d( 
-                x=(x[:,i])*1e2,
-                y=(y[:,i])*1e2,
-                z=(z[:,i])*1e2,
-                mode="markers",
-                marker=attr(color=getproperty(obj,key)*factor,
-                            showscale=colorbar,
-                            colorscale=colormap,
-                            colorbar=attr(ticksuffix=unit, title=string(key)),
-                            cmin=cmin_key,
-                            cmax=cmax_key,
-                            size=2
-                            ),
-                visible=i==1,
-                showlegend=false,
-                text=round.(getproperty(obj,key)*factor,digits=4),
-                hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br>z: %{z:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>"))
-        end
-    end
-
-    # Config the rest of the layout
-    l[:paper_bgcolor] = bgcolor
-    l[:plot_bgcolor] = plot_bgcolor
-    l[:font_color] = text_color
-    l[:sliders] = [attr(
-        visible=length(t) > 1,
-        pad=attr(l=30, b=30),
-        steps=[
-            attr(
-                label=round(t0*1e3; digits=2),
-                method="update",
-                args=[attr(visible=[fill(false, i-1); true; fill(false, length(t) - i)])]
-            )
-            for (i, t0) in enumerate(t)
-        ],
-        currentvalue_prefix="t = ",
-        currentvalue_suffix="ms",
-    )]
-    l[:margin] = attr(t=50, l=0, r=0)
-    l[:modebar] = attr(orientation="h", bgcolor=bgcolor, color=text_color, activecolor=plot_bgcolor)
-
-    if height !== nothing
-        l.height = height
-    end
-    if width !== nothing
-        l.width = width
-    end
-    config = PlotConfig(
-        displaylogo=false,
-        toImageButtonOptions=attr(
-            format="svg", # one of png, svg, jpeg, webp
-        ).fields,
-        modeBarButtonsToRemove=["zoom", "pan", "resetCameraLastSave3d", "orbitRotation", "resetCameraDefault3d"]
-    )
-    return PlotlyBase.Plot(traces, l; config)
+function plot_phantom_map(obj::Phantom, key::Symbol; height=700, width=nothing,
+    darkmode=false, view_2d=sum(KomaMRIBase.get_dims(obj)) < 3, colorbar=true,
+    max_spins=nothing, adaptive=false,
+    time_samples=0, kwargs...)
+    return phantom_plot(obj, key; adaptive, max_spins, time_samples,
+        height, width, darkmode, view_2d, colorbar, kwargs...)
 end
 
 
-"""
-    p = plot_signal(raw::RawAcquisitionData; kwargs...)
 
-Plots a raw signal in ISMRMRD format.
-
-# Arguments
-- `raw`: (`::RawAcquisitionData`) RawAcquisitionData struct (raw signal in ISMRMRD format)
-
-# Keywords
-- `width`: (`::Integer`, `=nothing`) plot width
-- `height`: (`::Integer`, `=nothing`) plot height
-- `slider`: (`::Bool`, `=true`) boolean to indicate whether to display a slider
-- `show_sim_blocks`: (`::Bool`, `=false`) boolean to indicate whether to display sequence blocks
-- `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
-- `range`: (`::Vector{Real}`, `=[]`) time range to be displayed initially
-
-# Returns
-- `p`: (`::PlotlyBase.Plot`) plot of the raw signal
-
-# Examples
-```julia-repl
-julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/5.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq");
-
-julia> sys, obj, seq = Scanner(), brain_phantom2D(), read_seq(seq_file)
-
-julia> raw = simulate(obj, seq, sys)
-
-julia> plot_signal(raw)
-```
-"""
-function plot_signal(
+# Nonadaptive signal figure, shared with the adaptive signal source.
+function plot_signal_nonadaptive(
     raw::RawAcquisitionData;
     width=nothing,
     height=nothing,
-    slider=true,
+    slider=false,
     show_sim_blocks=false,
     darkmode=false,
     range=[],
@@ -1593,7 +1292,13 @@ function plot_signal(
 )
     not_Koma = raw.params["systemVendor"] != "KomaMRI.jl"
     t = []
-    signal = []
+    ncoils = size(first(raw.profiles).data, 2)
+    scatter_fun = gl ? scattergl : scatter
+    components = ((abs, "|S(t)|", scatter), (real, "Re{S(t)}", scatter_fun),
+        (imag, "Im{S(t)}", scatter_fun))
+    trace_coils = repeat(1:ncoils; inner=length(components))
+    signal_type = Union{Missing,eltype(first(raw.profiles).data)}
+    signals = [signal_type[] for _ in 1:ncoils]
     current_t0 = 0
     for p in raw.profiles
         dt = p.head.sample_time_us != 0 ? p.head.sample_time_us * 1e-3 : 1
@@ -1608,11 +1313,19 @@ function plot_signal(
         else
             append!(t, t0)
         end
-        append!(signal, p.data[:, 1]) #Just one coil
+        for coil in 1:ncoils
+            append!(signals[coil], @view p.data[:, coil])
+            push!(signals[coil], missing)
+        end
         #To generate gap
         append!(t, t[end])
-        push!(signal, missing)
     end
+    ymin, ymax = extrema(
+        value for signal in signals for sample in skipmissing(signal) for
+        value in (real(sample), imag(sample), abs(sample))
+    )
+    padding = iszero(ymax - ymin) ? max(abs(ymax), one(ymax)) : (ymax - ymin) / 20
+    signal_range = [ymin - padding, ymax + padding]
     #Show simulation blocks
     shapes = []
     annotations = []
@@ -1666,13 +1379,14 @@ function plot_signal(
             color=text_color,
             activecolor=plot_bgcolor,
         ),
-        legend=attr(; orientation="h", yanchor="bottom", xanchor="left", y=1, x=0),
+        legend=attr(; orientation="h", yref="container", yanchor="top", xanchor="left", y=1, x=0),
         plot_bgcolor=plot_bgcolor,
         paper_bgcolor=bgcolor,
         xaxis_gridcolor=grid_color,
         yaxis_gridcolor=grid_color,
         xaxis_zerolinecolor=grid_color,
         yaxis_zerolinecolor=grid_color,
+        yaxis_range=signal_range,
         font_color=text_color,
         yaxis_fixedrange=false,
         yaxis_automargin=false,
@@ -1690,7 +1404,24 @@ function plot_signal(
         ),
         shapes=shapes,
         annotations=annotations,
-        margin=attr(; t=6, l=30, r=6, b=24),
+        sliders=ncoils == 1 ? [] : [
+            attr(;
+                active=0,
+                currentvalue=attr(; prefix="Coil: "),
+                steps=[
+                    attr(;
+                        label=string(coil),
+                        method="restyle",
+                        args=[attr(; visible=trace_coils .== coil)],
+                    ) for coil in 1:ncoils
+                ],
+                x=0.1,
+                len=0.8,
+                y=1.12,
+                yanchor="bottom",
+            ),
+        ],
+        margin=attr(; t=ncoils == 1 ? 6 : 125, l=30, r=6, b=24),
     )
     if height !== nothing
         l.height = height
@@ -1698,17 +1429,16 @@ function plot_signal(
     if width !== nothing
         l.width = width
     end
-    scatter_fun = gl ? scattergl : scatter
-    p = [scatter_fun() for j in 1:3]
-    p[1] = scatter(;
-        x=t, y=abs.(signal), name="|S(t)|", hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)"
-    )
-    p[2] = scatter_fun(;
-        x=t, y=real.(signal), name="Re{S(t)}", hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)"
-    )
-    p[3] = scatter_fun(;
-        x=t, y=imag.(signal), name="Im{S(t)}", hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)"
-    )
+    p = [
+        plot_component(;
+            x=t,
+            y=component.(signal),
+            name,
+            hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)",
+            visible=coil == 1,
+        ) for (coil, signal) in enumerate(signals)
+        for (component, name, plot_component) in components
+    ]
     config = PlotConfig(;
         displaylogo=false,
         toImageButtonOptions=attr(;
@@ -1728,6 +1458,7 @@ function plot_signal(
     )
     return PlotlyBase.Plot(p, l; config)
 end
+
 
 """
     str = plot_dict(dict::Dict)
@@ -1773,32 +1504,8 @@ function plot_seqd_marker_symbols(seq, seqd, sampling_rule; freq_in_phase=false)
     return [t in boundary_t ? :circle : Symbol("line-ns") for t in seqd.t]
 end
 
-"""
-    p = plot_seqd(seq::Sequence; sampling_rule=KomaMRIBase.MaxStepSizeRule(1e-3, 5e-5))
-
-Plots a sampled sequence struct.
-
-# Arguments
-- `seq`: (`::Sequence`) Sequence struct
-
-# Keywords
-- `sampling_rule`: controls how the sequence sampling grid is refined
-- `show_rf_frame`: (`::Bool`, `=true`) plot RF rotating-frame phase
-- `freq_in_phase`: (`::Bool`, `=false`) fold RF frequency modulation into the complex RF waveform
-
-# Returns
-- `p`: (`::PlotlyBase.Plot`) plot of the sampled Sequence struct
-
-# Examples
-```julia-repl
-julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/1.sequences/spiral.seq")
-
-julia> seq = read_seq(seq_file)
-
-julia> plot_seqd(seq)
-```
-"""
-function plot_seqd(seq::Sequence; sampling_rule=KomaMRIBase.MaxStepSizeRule(1e-3, 5e-5), show_rf_frame=true, freq_in_phase=false)
+# Nonadaptive sampled-waveform figure, shared with the adaptive source.
+function plot_seqd_nonadaptive(seq::Sequence; sampling_rule=KomaMRIBase.MaxStepSizeRule(1e-3, 5e-5), show_rf_frame=true, freq_in_phase=false)
     seqd = KomaMRIBase.discretize(seq; sampling_rule, freq_in_phase)
     marker_symbol = plot_seqd_marker_symbols(seq, seqd, sampling_rule; freq_in_phase)
     marker_line_width = [s == :circle ? 0 : 2 for s in marker_symbol]

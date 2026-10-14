@@ -92,6 +92,19 @@ using TestItems, TestItemRunner
         @test gradient_seqd.Gx ≈ [0.0, 1e-3, 1e-3, 0.0, 2e-3, 2e-3, 0.0]
     end
 
+    @testset "RF-center timing in k-space integration" begin
+        sys = Scanner()
+        seq = PulseDesigner.build_sinc_pulse(π / 2; sys, duration=3e-3,
+            slice_thickness=5e-3, use=Excitation())
+        @addblock seq += PulseDesigner.EPI(0.24, 9, sys)
+        rule = MaxStepSizeRule(Inf, Inf; preserve_samples=(:gradients,))
+        _, k_adc = get_kspace(seq; sampling_rule=rule)
+
+        # The slice rephaser cancels M0z at every EPI sample, even with a coarse RF grid.
+        # Float64 cancellation of the ~10³ m⁻¹ slice-gradient areas leaves ~10⁻¹³ m⁻¹ roundoff.
+        @test maximum(abs, k_adc[:, 3]) ≈ 0 atol=1e-13
+    end
+
     @testset "Init" begin
         sys = Scanner()
         B1 = sys.limits.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse

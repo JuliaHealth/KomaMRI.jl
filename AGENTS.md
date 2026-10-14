@@ -49,6 +49,12 @@
 - Never write raw `seq += ...` in examples or generated code; use `@addblock`.
 - Never call `build_*` only to extract events or duration and then rebuild the same block. Use `make_*` for custom blocks, copy a built block when preserving its block semantics, or append the built sequence/block directly.
 
+## KomaUI
+
+- For programmatic UI control, prefer `click!`, `load_file!`, and window observables. Read the [usage examples](docs/src/how-to/1-1-use-koma-ui.md#Controlling-the-UI-from-Julia-easier-for-AI-agents), [browser-based UI guide](docs/src/how-to/1-1-use-koma-ui.md#Browser-based-KomaUI-easier-for-AI-agents), and [API/action list](docs/src/reference/6-koma-mri.md#Actions). Use browser interaction for visual checks.
+- Reuse the existing KomaUI window. Do not call `display(w.app)` or `Base.display(w.display[], w.app)` to refresh it; use `click!` for views and a native page reload for a broken page. A blank or malformed page is not proof of a crashed process.
+- Open windows only through `KomaUI` when requested or when the existing window is confirmed closed. Do not launch Electron/Julia.app directly or open a second browser/window as a workaround for failed UI controls. Suppress displayable REPL results with `;` so diagnostics do not replace the UI through the active display backend.
+
 ## Python
 - Use `uv` for reproducible Python environments. Do not use bare `pip`.
 
@@ -65,7 +71,7 @@
 - For groups of semantically similar tests, add one compact comment above the group when intent is not obvious. Do not comment every assertion.
 - Do not add tests that merely check a function equals its own definition or reimplement the same logic in the test. Test behavioral contracts, regressions, edge cases, and cross-implementation parity; do not add random assertions only to increase coverage.
 - For all tests, prioritize physical, MRI, and behavioral correctness: where applicable, compare against an analytical result or an independent high-accuracy ODE solution, test conserved quantities or known invariants, and use cross-method/backend parity only when one path is a trusted reference.
-- Every new test must have an explicit semantic purpose. Do not add `isa`, output-type, allocation-shape, or “runs without error” assertions unless that exact API contract or regression is the subject of the test.
+- Add new tests or assertions only when all three conditions hold: they are semantically relevant, add significant meaningful coverage, and the user has explicitly approved the proposed tests. Explain the invariant and coverage gap and obtain approval before writing them; a general request to implement, fix, refactor, or verify is not approval to add tests. Running existing tests does not require this approval. Do not add `isa`, output-type, allocation-shape, or “runs without error” assertions unless that exact API contract or regression is the subject of the test.
 - Every group of semantically related assertions must be preceded by one compact comment stating the physical, numerical, or behavioral invariant being tested. Do not narrate implementation steps or comment individual assertions.
 - Prefer fewer strong tests over duplicated CPU/GPU or per-method copies. Use the existing backend loader so one invariant runs on the selected backend.
 
@@ -86,7 +92,7 @@
 
 ## PRs And Releases
 - PRs target `master`, stay scoped, and include what changed, why, and what was tested.
-- Add trigger labels at PR creation when the first CI run matters: `documentation` or `run-gpu-ci`. Adding them after PR creation is too late for the first run.
+- Add or change PR labels/tags only when explicitly requested by the user. Pushing or marking a PR ready does not authorize `run-gpu-ci`, `documentation`, or other opt-in CI/preview triggers.
 - Do not use the `pre-release` label unless the user explicitly asks to test Julia pre-release versions.
 - Register package versions only after the release PR is merged and `origin/master` contains the target package/version. Do not trigger JuliaRegistrator from an open PR.
 - For subpackage registration, comment on the merged `origin/master` commit, not the PR: `@JuliaRegistrator register subdir=<PackageName>`. PR comments do not trigger Registrator in this repo.

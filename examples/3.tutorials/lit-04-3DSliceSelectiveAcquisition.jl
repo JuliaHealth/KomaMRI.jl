@@ -44,16 +44,13 @@ raw = @suppress simulate(obj, seq, sys)
 p3 = plot_signal(raw; slider=false, height=300)
 #jl display(p3)
 
-# Finally, we reconstruct the acquiered images.
-
-## Get the acquisition data
-raw.params["trajectory"] = "other"
-acq = AcquisitionData(raw)
+# Finally, reconstruct each acquired slice using its `SLC` label.
 
 ## Setting up the reconstruction parameters and perform reconstruction
 Nx, Ny = raw.params["reconSize"][1:2]
 reconParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny))
-image = reconstruction(acq, reconParams)
+result = reconstruct_with_labels(raw; rec_params=reconParams)
+image = cat((entry.image[:, :, 1, 1, 1, 1] for entry in result.images)...; dims=3)
 
 ## Plotting the slices
 p4 = plot_image(abs.(image[:, :, 1]); height=360, title="Slice 1")

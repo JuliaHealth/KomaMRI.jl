@@ -1,159 +1,286 @@
 # Use Koma's User Interface
 
-This section provides a comprehensive guide on using the **User Interface** of the **KomaMRI** package and delves into the internal processes that occur during interaction. By the end of this section, you will be equipped to execute a complete workflow even without any prior programming experience.
+Load a sequence, phantom, and scanner; simulate, reconstruct, and export the results.
+The [notebook](1-2-use-koma-notebooks.md#Basic-Workflow) and
+[Julia script](1-3-use-koma-scripts.md#Basic-Workflow) guides follow the same brain/EPI example.
 
-```@raw html
-<p align="center"><img width="90%" src="../assets/ui-simulation.gif"/></p>
-```
+![](../assets/ui-simulation.gif){style="width:90%"}
 
 
 ## Basic Workflow
-(You can also go to [analog steps using Scripts](1-3-use-koma-scripts.md#Basic-Workflow))
 
-As a general overview, remember the following workflow steps when using KomaMRI:
-
-* Loading Simulation Inputs: **Scanner**, **Phantom**, **Sequence**
-* Running Simulation
-* Reconstructing Image using **MRIReco**
-
-In the following subsections, we will cover all the mentioned steps. First, open the **Julia REPL** and enter the following commands to include the **KomaMRI** package and launch the user interface:
+Open the interface from Julia:
 ```julia-repl
 julia> using KomaMRI
 
 julia> KomaUI()
 ```
+Dark mode is the default. Use the switch at the bottom of the sidebar to
+switch themes, or start with `KomaUI(darkmode=false)` for light mode.
 After installing the [`koma` app](1-4-use-koma-cli.md#Installing-the-App) (Julia 1.12+), the same interface can be opened from the terminal:
 ```bash
 koma
 ```
-```@raw html
-<p align="center"><img width="90%" src="../assets/gui-dashboard.png"/></p>
-```
+Use the sidebar arrow to collapse or expand it.
+
+![](../assets/gui-dashboard.png){style="width:90%"}
 
 ## Loading Simulation Inputs
-(You can also go to [analog steps using Scripts](1-3-use-koma-scripts.md#Loading-Simulation-Inputs))
 
-The user interface has preloaded certain inputs into RAM, including the **Scanner**, **Phantom**, and **Sequence** structs. In the following subsections, we will demonstrate how to visualize these inputs.
+Same inputs: [Julia scripts](1-3-use-koma-scripts.md#Loading-Simulation-Inputs).
+
+The interface starts with a scanner, a 2D brain phantom, and an EPI sequence.
+Use each menu's file picker to replace an input, or its reload button to reread it.
 
 ### Scanner
 
-You can visualize the preloaded **Scanner** struct by clicking on the `Scanner` dropdown and then pressing the `View Scanner` button. The **Scanner** struct contains hardware-related information, such as the main magnetic field's magnitude:
-```@raw html
-<p align="center"><img width="90%" src="../assets/gui-scanner-view.png"/></p>
-```
+Use the Scanner file picker to load a `.sys` file; the reload button reads it again.
+See the [scanner file reference](../reference/4-koma-files.md#Scanner) for creating files and supported models.
+
+Select `View limits` for hardware limits or `View coil sensitivities` for receive maps.
+`View gradients` and `View B₁ maps` are not yet available and are disabled.
+
+![](../assets/gui-scanner-view.png){style="width:90%"}
 
 ### Phantom
 
-To see the phantom already stored in RAM, simply click on the `Phantom` dropdown an then press the `View Phantom` button. The preloaded phantom is a slice of a brain:
-```@raw html
-<p align="center"><img width="90%" src="../assets/gui-phantom-view.png"/></p>
-```
+`Phantom` → `View phantom`:
 
-It is also possible to load `.h5` phantom files. The **KomaMRI.jl** has some examples stored at `~/.julia/packages/KomaMRI/<id-string>/examples/2.phantoms/`. For instance, let's load the `sphere_chemical_shift.h5` file:
-```@raw html
-<p align="center"><img width="90%" src="../assets/gui-phantom-load.png"/></p>
-```
-
-Note that you can select different spin parameters to visualize like `ρ`, `T1`, `T2`, among others. 
+![](../assets/gui-phantom-view.png){style="width:90%"}
 
 ### Sequence
 
-There are two options to visualize the sequence already preloaded in RAM: in the time domain or in the k-space. The preloaded sequence is a single-shot EPI.
+Select `View definitions` to inspect the loaded sequence's `DEF` dictionary, including any `FOV`, `Nx`, `Ny`, and `Nz` values.
 
-For visualization of the sequence in the time domain, click on the `Sequence` dropdown and then press the `Sequence (MPS)` button:
-```@raw html
-<p align="center"><img width="90%" src="../assets/gui-seq-time-view.png"/></p>
-```
+`Sequence` → `View sequence`:
 
-For visualization of the sequence in the k-space, click on the `Sequence` dropdown and then press the `k-space` button:
-```@raw html
-<p align="center"><img width="90%" src="../assets/gui-seq-kspace-view.png"/></p>
-```
+![](../assets/gui-seq-time-view.png){style="width:90%"}
 
-You can also display the `Moments` related to the **Sequence** by pressing the `View Moments` and then pressing the buttons for zero, first and second moments.
+`Sequence` → `View k-space`:
 
-It is also possible to load **Pulseq** compatible `.seq` sequence files. The **KomaMRI** has some examples stored at `~/.julia/packages/KomaMRI/<id-string>/examples/1.sequences/`. For instance, let's load the `spiral.seq` file and view it the time domain and k-space:
-```@raw html
-<p align="center"><img width="90%" src="../assets/gui-seq-time-load.png"/></p>
-```
-```@raw html
-<p align="center"><img width="90%" src="../assets/gui-seq-kspace-load.png"/></p>
-```
+![](../assets/gui-seq-kspace-view.png){style="width:90%"}
 
-And remember, you are free to interact with the plots:
-```@raw html
-<p align="center"><img width="90%" src="../assets/ui-seq.gif"/></p>
-```
+Zoom the compact sequence panel below k-space to select a time window. The
+trajectory follows that window while preserving the 3D camera; double-click
+the sequence panel to reset the selection.
+
+`Sequence` → `View moments`:
+
+![Zero, first, and second gradient moments](../assets/ui-sequence-moments.gif){style="width:90%"}
 
 
 ## Running Simulation
-(You can also go to [analog steps using Scripts](1-3-use-koma-scripts.md#Running-Simulation))
 
-Once the inputs are loaded in RAM, it is possible to perform the simulation to get the **Raw Signal**.
+Same simulation: [Julia scripts](1-3-use-koma-scripts.md#Running-Simulation).
 
 ### Simulation Parameters
 
-To visualize the default simulation parameters, click on the `Simulate!` dropdown and then press the `View Options` button:
-```@raw html
-<p align="center"><img width="90%" src="../assets/gui-sim-params-view.png"/></p>
-```
+Open `Configuration` → `View configuration` to see simulation `[sim_params]`
+followed by reconstruction `[recon_params]`. Select the `.toml (Koma)` file picker
+in the same menu to load both from one file; omitted settings remain unchanged.
+See the [configuration example](1-4-use-koma-cli.md#Configuration-files).
+
+![Simulation and reconstruction configuration](../assets/gui-configuration-view.jpg){style="width:90%"}
 
 ### Visualization of the Raw Signal
 
-Press the `Simulate!` button to perform the simulation (this may take a while). Automatically the generated **Raw Signal** should be displayed or you can click on the `Raw Data` dropdown and then press the `View Raw Data` button:
-```@raw html
-<p align="center"><img width="90%" src="../assets/gui-rawsignal-view.png"/></p>
-```
+Press `Simulate!`. The raw signal appears automatically.
+Reopen it with `Raw data` → `View raw data`.
+
+![](../assets/gui-rawsignal-view.png){style="width:90%"}
 
 ## Reconstructing Image using MRIReco
-(You can also go to [analog steps using Scripts](1-3-use-koma-scripts.md#Reconstructing-Image-using-MRIReco))
 
-Once the **Raw Signal** is loaded in RAM, it is possible to reconstruct the image.
+Same reconstruction: [Julia scripts](1-3-use-koma-scripts.md#Reconstructing-Image-using-MRIReco).
 
 ### Reconstruction Parameters
 
-To visualize the default reconstruction parameters, click on the `Reconstruct!` dropdown and then press the `View Options` button:
-```@raw html
-<p align="center"><img width="90%" src="../assets/gui-recon-params-view.png"/></p>
-```
+Reconstruction `[recon_params]` appears below simulation parameters on the
+`Configuration` → `View configuration` page.
 
 ### Visualization of the Image
 
-Press the `Reconstruct!` button to perform the reconstruction (this may take a while).  Automatically the generated **Image** should be displayed or you can click on the he `Reconstruct!` dropdown and then press the `|Image|` button:
-```@raw html
-<p align="center"><img width="90%" src="../assets/gui-image-view.png"/></p>
+Press `Reconstruct!`. The image appears automatically.
+Reopen it with `Image` → `View image`.
+
+![](../assets/gui-image-view.png){style="width:90%"}
+
+PAR volumes and compatible SLC stacks open linked image-coordinate slice views.
+Acquisition-label and coil selectors retain the slice positions. Middle-drag to
+adjust window width/level in images or log-k-space; double-click resets it.
+
+![Linked reconstructed image slices](../assets/gui-image-slices.png){style="width:90%"}
+
+See [Cartesian multi-slice reconstruction](../tutorial/gen-08-CartesianLabels.md)
+for a simulated `SLC` acquisition and its interactive reconstructed slice stack.
+
+## Exporting results
+
+Same outputs: [Julia scripts](1-3-use-koma-scripts.md#Exporting-Results).
+
+Open `Export results` to download the image (`.mat`) or raw data (`.mat` or `.mrd`).
+Electron opens a folder picker. Supported browsers open a Save As picker;
+other browsers download the file using their download settings.
+
+![](../assets/gui-export-to-mat.png){style="width:90%"}
+
+See the [MATLAB export reference](../reference/4-koma-files.md#MATLAB-exports)
+for filenames, struct fields, and MATLAB examples.
+
+## Exploring other inputs
+
+After completing the brain/EPI workflow, try the same
+[sphere](1-3-use-koma-scripts.md#Phantom) and
+[spiral](1-3-use-koma-scripts.md#Sequence) examples as in the script and notebook guides.
+
+Load `examples/2.phantoms/sphere_chemical_shift.h5` in the Phantom file picker
+and select `T2`:
+
+![](../assets/gui-phantom-load.png){style="width:90%"}
+
+Load `examples/1.sequences/spiral.seq` in the Sequence file picker:
+
+![](../assets/gui-seq-time-load.png){style="width:90%"}
+
+![](../assets/gui-seq-kspace-load.png){style="width:90%"}
+
+Interact with the plots:
+
+![](../assets/ui-seq.gif){style="width:90%"}
+
+Include `Nx`, `Ny`, `Nz`, and `FOV` definitions when reconstructing a loaded
+sequence; missing dimensions produce an inference warning.
+
+### Additional phantom views
+
+`View phantom slices` opens three linked slab views. Scroll or drag each slice
+slider to change its position; the thickness selector and motion controls are shared.
+
+![Linked phantom slab views](../assets/gui-phantom-slices.png){style="width:90%"}
+
+For phantoms with Flow motion:
+
+![Flow motion and velocity in a U-bend phantom](../assets/ui-phantom-flow.gif){style="width:90%"}
+
+## Backend and device selection
+
+Click the host badge at the bottom of the sidebar to choose the CPU or a GPU for
+the next simulation. Hover to see the selected device.
+
+GPU choices appear only when a functional backend is loaded before `KomaUI()`:
+`using CUDA` for NVIDIA, `using Metal` for Apple, or `using AMDGPU` for AMD.
+`using oneAPI` supports Intel experimentally. Otherwise, CPU is used.
+
+![](../assets/gui-device-selection.png){style="width:420px;max-width:90%"}
+
+## Browser-based KomaUI (easier for AI agents)
+
+In a local Julia session:
+
+```julia
+using KomaMRI
+# using CUDA    # NVIDIA GPU
+# using Metal   # Apple GPU
+# using AMDGPU  # AMD GPU
+# using oneAPI  # Intel GPU (experimental)
+KomaUI(; browser=true)
 ```
 
-## Exporting Results to .mat File
-(You can also go to [analog steps using Scripts](1-3-use-koma-scripts.md#Exporting-Results-to-.mat-File))
+Open the URL printed by KomaUI in your browser.
 
-The user interface has the option to save the results in `.mat` format. Simply click on the `Export to .mat` and you have the alternatives to get data independently or you can press the `All` button to have all the results given by the simulator:
-```@raw html
-<p align="center"><img width="90%" src="../assets/gui-export-to-mat.png"/></p>
+### Running on a server
+
+Start KomaUI on the server. Forward its printed port from your local computer:
+
+```sh
+ssh -N -L 9384:127.0.0.1:9384 user@server
 ```
 
-So far, and due to limitations of the user interface dependencies, the `.mat` files are saved in the temporal directory of your computer OS, which can be found by typing the `tempdir()` command in the **Julia REPL**:
-```@raw html
-<p align="center"><img width="90%" src="../assets/ui-export-data.gif"/></p>
+Keep the tunnel running and open `http://localhost:9384` locally.
+Replace `9384` and `user@server` with your port and SSH address.
+
+## Controlling the UI from Julia (easier for AI agents)
+
+Load inputs, simulate and reconstruct, then save outputs:
+
+```julia
+w = KomaUI(; return_window=true)
+
+# Load inputs without a dialog
+load_file!(w, :sequence, "example.seq")   # Or: w.seq[] = seq
+load_file!(w, :phantom, "brain.phantom")  # Or: w.obj[] = obj
+load_file!(w, :scanner, "scanner.sys")    # Or: w.sys[] = sys
+load_file!(w, :configuration, "settings.toml")  # Optional parameter overrides
+
+# Simulate and reconstruct
+w.sim_params[] = merge(w.sim_params[], Dict("precision" => "f32"))
+w.rec_params[] = merge(w.rec_params[], Dict(
+    :reco => "standard", :iterations => 10, :recon_policy => (COIL=:rss,)))
+raw = simulate!(w)
+image = reconstruct!(w)
+
+# Save outputs without a dialog
+result = export_results(w, :raw_data_mrd; path="/data/exports/raw.mrd")
+export_results(w, :raw_data_mat; path="/data/exports/raw.mat")
+export_results(w, :image_mat; path="/data/exports/image.mat")
+
+# Other menu actions
+click!(w, :view_kspace)
+click!(w, :view_coil_sensitivities)
+click!(w, :reload_sequence)
+
+# Backend-related actions
+get_devices()
+click!(w, :select_device; gpu=false)                # CPU
+click!(w, :select_device; gpu=true, id=device_id)   # An available GPU
 ```
 
+Export paths refer to the machine running Julia; the parent directory must exist.
+`result.path` is the saved file and `result.url` is its download URL in browser mode
+(`nothing` in Electron). Retrieve remote downloads through the SSH tunnel.
 
-## REPL and UI communication
+For GPU simulation, first import the backend for your hardware: `CUDA` (NVIDIA),
+`Metal` (Apple), `AMDGPU` (AMD), or `oneAPI` (Intel, experimental).
+See the [full action list](../reference/6-koma-mri.md#Actions) (or `?click!` in Julia)
+and [window data reference](../reference/6-koma-mri.md#Window-data).
 
-An amazing feature of **KomaMRI** is that it allows you to modify certain variables in the **Julia REPL**, and then the user interface automatically updates its plots in real-time:
+Use a GPU ID from `get_devices()`. Omit `id` to select the backend's current GPU.
+An unavailable GPU throws and leaves
+the settings unchanged.
 
-```@raw html
-<p align="center"><img width="90%" src="../assets/ui-observables.gif"/></p>
+### Long-running operations
+
+Calls block until complete and throw on failure. To inspect progress during a
+simulation, keep its task:
+
+```julia
+task = @async simulate!(w)
+ui_status(w)                  # Simulation status, progress, elapsed_seconds, eta_seconds
+raw = fetch(task)             # Waits and returns the result, or throws
 ```
 
-The variables that update the interface are:
+Elapsed time and ETA are simulation-only; reconstruction reports `nothing` for both.
+ETA is a block-based estimate and can fluctuate during setup or compilation.
 
-* `seq_ui[]` for the **Sequence**
-* `obj_ui[]` for the **Phantom**
-* `sys_ui[]` for the **Scanner**
-* `physio_ui[]` for the **Physiological Signal**
-* `raw_ui[]` for the **Raw Signal**
-* `img_ui[]` for the **Image**
+While an operation runs, only theme/sidebar toggles remain available. Assign
+observables directly only when idle. `fetch(task)` waits for the operation;
+`wait(w)` waits for the UI to close.
 
-Don't forget to add the brackets `[]` to these variables, otherwise it won't work.
-Changing `seq_ui[]` resets `physio_ui[]` to the sequence's default physiological signal.
+## KomaWorkspace
+
+`KomaWorkspace` shows independent KomaUI windows side by side in one browser,
+so you can compare sequences or simulation results:
+
+```julia
+w1 = KomaUI(; show_window=false, return_window=true)
+w2 = KomaUI(; show_window=false, return_window=true)
+workspace = KomaWorkspace([w1, w2])
+```
+
+Use **Add window** to create another tile, or `add_window!(workspace; sim=Dict("gpu" => false))`
+from Julia. Each tile has its own inputs, outputs, device, and progress. Expand a
+tile to focus it without reconnecting. Numbers appear only in workspace headers.
+`KomaWorkspace([w])` can also adopt an existing browser window, preserving its data
+and server port. For SSH, forward the workspace's single printed port.
+
+![](../assets/gui-workspace.png){style="width:90%"}

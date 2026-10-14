@@ -83,12 +83,9 @@ function bSSFP(FOV, N, TR, flip_angle, sys; #hide
     return bssfp #hide
 end #hide
 #hide
-function reconstruct_image(raw, seq, N_matrix) #hide
+function reconstruct_image(raw, N_matrix) #hide
     acq = AcquisitionData(raw) #hide
-    _, ktraj = get_kspace(seq) #hide
     acq.traj[1].circular = false #hide
-    acq.traj[1].nodes = permutedims(ktraj[:, 1:2]) #hide
-    acq.traj[1].nodes ./= maximum(2 * abs.(acq.traj[1].nodes[:])) #hide
     acq.traj[1].numProfiles = N_matrix #hide
     rec_params = Dict{Symbol,Any}( #hide
         :reco=>"direct", :reconSize=>(N_matrix, N_matrix), :densityWeighting=>false, #hide
@@ -174,7 +171,7 @@ raw_regular = simulate(
     verbose=false,
 );
 
-image_regular = reconstruct_image(raw_regular, seq, N_matrix); #hide
+image_regular = reconstruct_image(raw_regular, N_matrix); #hide
 pimage_regular = plot_image( #hide
     image_regular; height=400, title="Correctly triggered regular rhythm", #hide
 ); #hide
@@ -206,7 +203,7 @@ raw_mismatched = simulate(
     verbose=false,
 );
 
-image_mismatched = reconstruct_image(raw_mismatched, seq, N_matrix); #hide
+image_mismatched = reconstruct_image(raw_mismatched, N_matrix); #hide
 image_scale = maximum(image_mismatched) #hide
 pimage_mismatched = plot_image( #hide
     image_mismatched; height=400, zmin=0, zmax=image_scale, #hide

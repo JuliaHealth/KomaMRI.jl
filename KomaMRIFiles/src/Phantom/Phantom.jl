@@ -111,16 +111,19 @@ end
 
 
 """
-    phantom = write_phantom(ph,filename)
+    write_phantom(ph, filename; compression=true)
 
 Writes a (.phantom) file from a Phantom struct.
+Array datasets use lossless byte shuffle and DEFLATE compression at HDF5's default
+level. Set `compression=false` to write unfiltered, contiguous datasets.
 """
 function write_phantom(
     obj::Phantom,
     filename::String;
     store_coords=[:x, :y, :z],
     store_contrasts=[:ρ, :T1, :T2, :T2s, :Δw],
-    store_motion=true
+    store_motion=true,
+    compression=true
 )
     # Create HDF5 phantom file
     fid = h5open(filename, "w")
@@ -133,40 +136,54 @@ function write_phantom(
     # Positions
     pos = create_group(fid, "position")
     for x in store_coords
-        pos[String(x)] = getfield(obj, x)
+        write_phantom_array!(pos, String(x), getfield(obj, x), compression)
     end
     # Contrast (Rho, T1, T2, T2s Deltaw)
     contrast = create_group(fid, "contrast")
     for x in store_contrasts
-        contrast[String(x)] = getfield(obj, x)
+        write_phantom_array!(contrast, String(x), getfield(obj, x), compression)
     end
     # Motion
     if !(obj.motion isa NoMotion) & store_motion
         motion_group = create_group(fid, "motion")
-        export_motion!(motion_group, obj.motion)
+        export_motion!(motion_group, obj.motion, compression)
     end
     return close(fid)
 end
 
-export_motion!(motion_group::HDF5.Group, motion::Motion) = export_motion!(motion_group, MotionList([motion]))
-function export_motion!(motion_group::HDF5.Group, motion_list::MotionList)
+function write_phantom_array!(group, name, values, compression)
+    if compression
+        group[name, shuffle=true, deflate=true] = values
+    else
+        group[name] = values
+    end
+    return nothing
+end
+
+export_motion!(motion_group::HDF5.Group, motion::Motion, compression) = export_motion!(motion_group, MotionList([motion]), compression)
+function export_motion!(motion_group::HDF5.Group, motion_list::MotionList, compression)
     sort_motions!(motion_list)
     for (counter, m) in enumerate(motion_list.motions)
         motion = create_group(motion_group, "motion_$(counter)")
         for key in fieldnames(Motion) # action, time, spins
             field_group = create_group(motion, string(key)) 
             field_value = getfield(m, key)
-            export_motion_field!(field_group, field_value)
+            export_motion_field!(field_group, field_value, compression)
         end
     end
 end
 
-function export_motion_field!(field_group::HDF5.Group, field_value)
+function export_motion_field!(field_group::HDF5.Group, field_value, compression)
     HDF5.attributes(field_group)["type"] = string(typeof(field_value).name.name)
     for subname in fieldnames(typeof(field_value)) # dx, dy, dz, pitch, roll...
         subfield = getfield(field_value, subname)
-        !(string(subname) in ["t_start", "t_end"]) ? export_motion_subfield!(field_group, subfield, string(subname)) : nothing
+        !(string(subname) in ["t_start", "t_end"]) ? export_motion_subfield!(field_group, subfield, string(subname), compression) : nothing
     end
+end
+
+function export_motion_subfield!(field_group, subfield, subname, compression)
+    export_motion_subfield!(field_group, subfield, subname)
+    return nothing
 end
 
 function export_motion_subfield!(field_group::HDF5.Group, subfield::Real, subname::String)
@@ -178,11 +195,11 @@ end
 function export_motion_subfield!(field_group::HDF5.Group, subfield::Union{Bool,Tuple}, subname::String)
     HDF5.attributes(field_group)[subname] = string(subfield)
 end
-function export_motion_subfield!(field_group::HDF5.Group, subfield::Array, subname::String)
-    field_group[subname] = subfield
+function export_motion_subfield!(field_group::HDF5.Group, subfield::Array, subname::String, compression)
+    write_phantom_array!(field_group, subname, subfield, compression)
 end
-function export_motion_subfield!(field_group::HDF5.Group, subfield::BitMatrix, subname::String)
-    field_group[subname] = Int.(subfield)
+function export_motion_subfield!(field_group::HDF5.Group, subfield::BitMatrix, subname::String, compression)
+    write_phantom_array!(field_group, subname, Int.(subfield), compression)
 end
 function export_motion_subfield!(field_group::HDF5.Group, subfield::CenterOfMass, subname::String)
     field_group[subname] = "CenterOfMass"

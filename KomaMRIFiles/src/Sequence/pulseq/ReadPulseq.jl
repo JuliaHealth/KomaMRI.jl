@@ -76,10 +76,10 @@ end
 
 function parsed_definition_value(key, value)
     fields = split(value)
-    parsed = map(fields) do field
-        something(tryparse(Float64, field), field)
-    end
-    return length(parsed) == 1 && key != "RequiredExtensions" ? parsed[1] : parsed
+    key == "RequiredExtensions" && return String.(fields)
+    parsed = tryparse.(Float64, fields)
+    any(isnothing, parsed) && return value
+    return length(parsed) == 1 ? only(parsed) : Float64.(parsed)
 end
 
 function definitions_dict(definitions)
@@ -783,16 +783,16 @@ function sequence_from_pulseq_data(data::PulseqSequenceData; filename=nothing)
 
     # Final details
     seq.DEF = KomaMRIBase._sequence_def_from_pulseq(definitions_dict(data.libraries.definitions))
-    # Koma specific details for reconstrucion
+    # File metadata
     if !isnothing(filename)
         seq.DEF["FileName"] = basename(filename)
         seq.DEF["PulseqVersion"] = data.pulseq_version
         seq.DEF["signature"] = data.signature
     end
-    # Guessing recon dimensions
-    seq.DEF["Nx"] = trunc(Int64, get(seq.DEF, "Nx", maximum(adc.N for adc = seq.ADC)))
-    seq.DEF["Nz"] = trunc(Int64, get(seq.DEF, "Nz", length(unique(seq.RF.Δf))))
-    seq.DEF["Ny"] = trunc(Int64, get(seq.DEF, "Ny", count(is_ADC_on, seq.ADC) ÷ seq.DEF["Nz"]))
+
+    for name in ("Nx", "Ny", "Nz")
+        haskey(seq.DEF, name) && (seq.DEF[name] = Int(seq.DEF[name]))
+    end
     #Koma sequence
     return seq
 end
@@ -804,6 +804,11 @@ KomaMRIBase.Sequence(data::PulseqSequenceData; filename=nothing) =
     seq = read_seq(filename)
 
 Returns the Sequence struct from a Pulseq file with `.seq` extension.
+
+Explicit `Nx`, `Ny`, and `Nz` definitions are recommended for reconstruction.
+Missing dimensions remain absent from `seq.DEF`; raw-data export infers them from
+imaging ADCs, `LIN`/`PAR` labels, and FOV/k-space coverage. Slices come only from
+`SLC` labels, never from RF frequency offsets or the number of ADC events.
 
 # Arguments
 - `filename`: (`::String`) absolute or relative path of the sequence file `.seq`

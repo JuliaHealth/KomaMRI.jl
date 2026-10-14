@@ -1,6 +1,6 @@
 name = "KomaMRI"
 uuid = "6a340f8b-2cdf-4c04-99be-4953d9b66d0a"
-version = "0.14.0"
+version = "0.15.0"
 authors = ["Carlos Castillo Passi <cncastillo@uc.cl>"]
 
 [workspace]
@@ -8,6 +8,7 @@ projects = ["test", "benchmarks", "KomaMRIBase", "KomaMRICore", "KomaMRIFiles", 
 
 [deps]
 Artifacts = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
+AxisArrays = "39de3d68-74b9-583c-8d2d-e117c070f3a9"
 Bonito = "824d6782-a2ef-11e9-3a09-e5662e0c26f8"
 Electron = "a1bb12fb-d4d1-54b4-b10a-ee7951ef7ad3"
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
@@ -22,23 +23,26 @@ PlotlyBase = "a03496cd-edff-5a9b-9e67-9cda94a718b5"
 PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
 Preferences = "21216c6a-2e73-6563-6e65-726566657250"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
+TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 
 [compat]
 Artifacts = "1"
+AxisArrays = "0.4"
 Bonito = "4.2, 5"
 Electron = "7"
 FFTW = "1.0"
-KomaMRICore = "0.13"
-KomaMRIFiles = "0.11.6"
-KomaMRIPlots = "0.13.1"
+KomaMRICore = "0.14"
+KomaMRIFiles = "0.12"
+KomaMRIPlots = "0.14"
 MAT = "0.10, 0.11, 0.12"
 MRIReco = "0.6, 0.7, 0.8, 0.9"
 MsgPack = "1.2.1"
 Observables = "0.5.5"
-PlotlyBase = "0.8.23"
+PlotlyBase = "0.8.23, 0.10"
 PrecompileTools = "1"
 Preferences = "1"
 Reexport = "1"
+TOML = "1"
 julia = "1.10"
 
 [apps.koma]

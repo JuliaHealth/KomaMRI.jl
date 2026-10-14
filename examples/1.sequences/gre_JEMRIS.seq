@@ -7,9 +7,12 @@ minor 2
 revision 1
 
 [DEFINITIONS]
+Nx 32
+Ny 32
+Nz 1
 Name gre
 Num_Blocks 192
-FOV 128 128 1
+FOV 0.128 0.128 0.001
 Slice_Thickness 1
 
 # Format of blocks:
@@ -301,4 +304,4 @@ num_samples 100
 
 [SIGNATURE]
 Type md5
-Hash ea25f2d66b314b77741ca2b4f5a02155
+Hash 57d5d46b2c57d129f626a682eaf6f245

@@ -5,9 +5,9 @@
 **KomaMRI** simulates the magnetization of each spin of a **Phantom** for variable magnetic fields given by a **Sequence**. It is assumed that a single spin is independent of the state of the other spins in the system (a key feature that enables parallelization). Furthermore, there are defined two regimes in the **Sequence**: excitation and precession. During the latter, the excitation fields are nulled and are useful for simplifying some physical equations.
 
 The are more internal considerations in the **KomaMRI** implementation. The **Figure 1** summarizes the functions called to perform the simulation.
-```@raw html
-<div style="text-align:center;"><img width="100%" src="../assets/koma-solution.svg"></div>
-```
+
+![](../assets/koma-solution.svg)
+
 **Figure 1**: The sequence `seq` is discretized after calculating the required time points in the wrapper function [`simulate`](@ref). The time points are then divided into simulation blocks to reduce the amount of memory used. The phantom `obj` is divided into `Nthreads`, and **KomaMRI** will use either `run_spin_excitation!` or `run_spin_precession!` depending on the regime. If an [`ADC`](@ref KomaMRIBase.ADC) object is present, the simulator will add the signal contributions of each thread to construct the acquired signal `sig[t]`. All the parameters: `Nthreads`, `max_block_length`, `max_rf_block_length`, `Δt_rf`, and `Δt`, are passed through a dictionary called `sim_params` as an optional parameter of the simulate function.
 
 From the programming perspective, it is needed to call the [`simulate`](@ref) function with the `sim_params` dictionary keyword argument. A user can change the values of the following keys:
@@ -16,8 +16,9 @@ From the programming perspective, it is needed to call the [`simulate`](@ref) fu
 |:---|:---|
 |`"return_type"` | defines the output of the [`simulate`](@ref) function. Possible values are `"raw"`, `"mat"`, and `"state"`, corresponding to outputting a **MRIReco** `RawAcquisitionData`, the signal values, and the last magnetization state of the simulation, respectively. |
 | `"sim_method"` | defines the type of simulation. The default value is `Bloch()`. Other built-in methods include `BlochDict()`, `BlochMagnus1()`, `BlochMagnus2()`, and `BlochMagnus4()`. You can also define custom methods without altering the **KomaMRI** source code; for details, see [Simulation Method Extensibility](#Simulation-Method-Extensibility). |
-| `"Δt"` | raster time for gradients. |
-| `"Δt_rf"` | raster time for RFs. |
+| `"sampling_rule"` | sequence sampling rule; when omitted, derived from the simulation method and maximum time steps. |
+| `"Δt"` | compatibility key for the maximum gradient time step. |
+| `"Δt_rf"` | compatibility key for the maximum RF time step. |
 | `"precision"` | defines the floating-point simulation precision. You can choose between `"f32"` and `"f64"` to use `Float32` and `Float64` primitive types, respectively. It's important to note that, especially for GPU operations, using `"f32"` is generally much faster. |
 | `"max_block_length"` | maximum number of time steps per precession block. |
 | `"max_rf_block_length"` | maximum number of time steps per RF excitation block. |
@@ -52,7 +53,7 @@ We increased the simulation speed by separating the calculations into `Nthreads`
 
 ### Simulation Method Extensibility
 
-In **Julia**, functions use different methods based on the input types via multiple dispatch. We used this to specialize the simulation functions for a given `sim_method <:SimulationMethod` specified in `sim_params`. For a given simulation method, the function `initialize_spin_state` outputs a variable `Xt <: SpinStateRepresentation` that is passed through the simulation (**Figure 1**). For the default simulation method `Bloch`, the spin state is of type `Mag`, but can be extended to a custom representation, like for example EPGs44 or others. Then, the functions `run_spin_excitation!` and `run_spin_precession!` can be described externally for custom types `sim_method` and `Xt`, extending **Koma**’s functionalities without the need of modifying the source code and taking advantage of all of **Koma**’s features.
+In **Julia**, functions use different methods based on the input types via multiple dispatch. We used this to specialize the simulation functions for a given `sim_method::SimulationMethod` specified in `sim_params`. For a given simulation method, `initialize_spins_state` returns `(Xt, obj)`, where `Xt::SpinStateRepresentation` is passed through the simulation (**Figure 1**). For the default simulation method `Bloch`, the spin state is of type `Mag`, but can be extended to a custom representation, like for example EPGs44 or others. Then, the functions `run_spin_excitation!` and `run_spin_precession!` can be described externally for custom types `sim_method` and `Xt`, extending **Koma**’s functionalities without the need of modifying the source code and taking advantage of all of **Koma**’s features.
 
 
 ## Bloch Simulation Method
@@ -66,19 +67,19 @@ The **Bloch** method of **KomaMRI** simulates the magnetization of each spin by 
 \begin{align} \tag{1}
 
 \frac{\mathrm{d} \boldsymbol{M}}{\mathrm{d} t} =
-  \gamma \boldsymbol{M} \times \boldsymbol{B}
+  2\pi\gamma \boldsymbol{M} \times \boldsymbol{B}
 - \frac{M_x \hat{x} + M_y \hat{y}}{T_2}
-- \frac{M_z \hat{x} + M_0 \hat{y}}{T_1} \:,
+- \frac{(M_z - M_0) \hat{z}}{T_1} \:,
 
 \end{align}
 ```
 
-with ``\gamma`` the gyromagnetic ratio, ``\boldsymbol{M} = [M_x,\: M_y,\: M_z]^T`` the magnetization vector, and
+with ``\gamma`` the gyromagnetic ratio in Hz/T, ``\boldsymbol{M} = [M_x,\: M_y,\: M_z]^T`` the magnetization vector, and
 ```math
-\boldsymbol{B} = [B_{1,x}(t),\: B_{1,y}(t),\: \boldsymbol{G}(t) \cdot \boldsymbol{x} + \Delta \omega(t)]^T
+\boldsymbol{B} = [B_{1,x}(t),\: B_{1,y}(t),\: \boldsymbol{G}(t) \cdot \boldsymbol{x} + \Delta \omega(t)/(2\pi\gamma)]^T
 ```
 
-the effective magnetic field. ``M_0`` is the proton density, ``T_1`` and ``T_2`` are the relaxation times, and ``\Delta \omega`` is the off-resonance, for each position.
+the effective magnetic field in tesla. ``M_0`` is the proton density, ``T_1`` and ``T_2`` are the relaxation times, and ``\Delta \omega`` is the off-resonance in rad/s, for each position.
 
 The **Bloch Simulation Method** also uses the technique of **operator splitting** to simplify the solution of Equation `(1)`. This reflects mathematically the intuition of separating the Bloch equations in a rotation operator described by
 ```math
@@ -86,9 +87,9 @@ The **Bloch Simulation Method** also uses the technique of **operator splitting*
 
 \frac{\mathrm{d}}{\mathrm{d}t} \boldsymbol{M} =
 \begin{bmatrix}
- 0          &  \gamma B_z & -\gamma B_y \\
--\gamma B_z &  0          &  \gamma B_x \\
- \gamma B_y & -\gamma B_x &  0
+ 0             &  2\pi\gamma B_z & -2\pi\gamma B_y \\
+-2\pi\gamma B_z &  0             &  2\pi\gamma B_x \\
+ 2\pi\gamma B_y & -2\pi\gamma B_x &  0
 \end{bmatrix}
 \boldsymbol{M} \:,
 
@@ -117,16 +118,14 @@ and a relaxation operator described by
 ```
 
 The evolution of the magnetization can then be described as a two-step process for each time step ``\Delta t`` (**Figure 2**).
-```@raw html
-<div style="text-align:center;">
-<figure>
-  <img width="60%" src="../assets/block-equation-intuition.svg">
-  <figcaption><b>Figure 2</b>: Solution of the Bloch equations for one time step can be described by (2) a rotation and (3) a relaxation step.</figcaption>
-</figure>
-</div>
-```
+
+![](../assets/block-equation-intuition.svg){style="width:60%"}
+
+**Figure 2**: Solution of the Bloch equations for one time step can be described by (2) a rotation and (3) a relaxation step.
 
 ### Bloch() Method Example
+
+Install `PlotlyBase` (`pkg> add PlotlyBase`) for the plots below.
 
 We will consider an RF pulse that excites a phantom with 3 spins, and then we acquire the data:
 ```@raw html
@@ -134,7 +133,8 @@ We will consider an RF pulse that excites a phantom with 3 spins, and then we ac
 ```
 ```julia
 # Import modules
-using KomaMRI
+using KomaMRI, PlotlyBase
+sys = Scanner()
 
 # Define sequence
 ampRF = 2e-6                        # 2 uT RF amplitude
@@ -156,7 +156,7 @@ seq = Sequence()
 ```julia-repl
 julia> obj = Phantom(x=[-0.5e-3; 0.0; 0.5e-3], T1=[1000e-3; 2000e-3; 500e-3], T2=[500e-3; 1000e-3; 2000e-3]);
 ```
-```julia
+```julia-repl
 julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
@@ -172,7 +172,7 @@ sim_params["sim_method"] = Bloch()
 sig = simulate(obj, seq, sys; sim_params)
 ```
 ```julia-repl
-julia> plot(abs.(sig[:,1,1]))
+julia> PlotlyBase.Plot(PlotlyBase.scatter(y=abs.(sig[:, 1])))
 ```
 ```@raw html
 <object type="text/html" data="../assets/sim-bloch-sig.html" style="width:100%; height:420px;"></object>
@@ -191,6 +191,7 @@ We are going to consider the same setup as in the [Bloch() Method Example](#Bloc
 ```julia
 # Import modules
 using KomaMRI, PlotlyBase
+sys = Scanner()
 
 # Define sequence
 ampRF = 2e-6                        # 2 uT RF amplitude
@@ -212,7 +213,7 @@ seq = Sequence()
 ```julia-repl
 julia> obj = Phantom(x=[-0.5e-3; 0.0; 0.5e-3], T1=[1000e-3; 2000e-3; 500e-3], T2=[500e-3; 1000e-3; 2000e-3]);
 ```
-```julia
+```julia-repl
 julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
@@ -228,8 +229,8 @@ sim_params["sim_method"] = BlochDict(save_Mz=true)
 sig = simulate(obj, seq, sys; sim_params)
 
 # Define the plots for traverse and longitudinal magnetizations
-pxy = plot(abs.(sig[:,:,1]));
-pz = plot(abs.(sig[:,:,2]));
+pxy = PlotlyBase.Plot([PlotlyBase.scatter(y=abs.(sig[:, i, 1]), name="Spin $i") for i in 1:length(obj)]);
+pz = PlotlyBase.Plot([PlotlyBase.scatter(y=abs.(sig[:, i, 2]), name="Spin $i") for i in 1:length(obj)]);
 ```
 ```julia-repl
 julia> [pxy pz]
