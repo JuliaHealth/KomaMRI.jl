@@ -257,7 +257,7 @@ function add_key_time_points!(t, m::Motion)
 end
 function add_key_time_points!(t, a, t_start::T, t_end::T, periods, periodic) where T
     isempty(t) && return
-    aux = T[]
+    aux = eltype(t)[]
     period = sum((t_end - t_start) .* periods)
     t_max = maximum(t)
     add_period_times!(aux, t_start, t_end, periods)
@@ -270,6 +270,7 @@ end
 
 extend_periodic!(t, t_max, period, periodic::Val{false}) = nothing
 function extend_periodic!(t, t_max, period, periodic::Val{true})
+    period = eltype(t)(period)
     n_periods = floor(Int, t_max / period)
     if n_periods > 0
         initial_size = length(t)
