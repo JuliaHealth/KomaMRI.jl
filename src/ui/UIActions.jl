@@ -1,7 +1,7 @@
 """
     ui_status(w)
 
-Return a snapshot of the latest load, simulation, reconstruction, or device selection:
+Return a snapshot of the latest operation:
 `action`, `state` (`:idle`, `:running`, `:succeeded`, or `:failed`), `progress`
 (fraction in `[0, 1]`, or `nothing` when unknown), and `message` (warning or error text).
 `elapsed_seconds` and `eta_seconds` are simulation-only (`nothing` for other
@@ -73,11 +73,11 @@ It is synchronous and propagates errors. Use `simulate!`, `reconstruct!`, or
 Use `ui_actions(w)` to discover actions and `ui_status(w)` to inspect operation status.
 
 Actions are `:home`, `:toggle_sidebar`, `:toggle_theme`, `:view_sequence`, `:view_sequence_definitions`, `:view_kspace`, `:view_moment0`,
-`:view_moment1`, `:view_moment2`, `:view_slew_rate`, `:view_phantom`, `:view_hardware_limits`,
+`:view_moment1`, `:view_moment2`, `:view_slew_rate`, `:view_spectrum`, `:view_phantom`, `:view_hardware_limits`,
 `:view_phantom_slice`, `:view_coil_sensitivities`, `:view_raw_data`, `:view_image`, `:view_log_kspace`,
 `:view_configuration`, `:view_simulation_options`, `:view_reconstruction_options`, `:simulate`, and
 `:reconstruct`. Reload actions are `:reload_sequence`, `:reload_phantom`,
-`:reload_scanner`, `:reload_raw_data`, and `:reload_configuration`; they do nothing until a file is loaded.
+`:reload_scanner`, `:reload_asc`, `:reload_raw_data`, and `:reload_configuration`; they do nothing until a file is loaded.
 MAT export actions are `:export_all`, `:export_sequence`, `:export_phantom`,
 `:export_scanner`, `:export_raw_data`, and `:export_image`.
 Export raw data as ISMRMRD with `:export_mrd`.
@@ -102,7 +102,8 @@ end
     load_file!(w, target, filename)
 
 Load a file as if selected in KomaUI's file picker. `target` is `:sequence`,
-`:phantom`, `:scanner`, `:raw_data`, or `:configuration` (explicit because `.h5` has multiple uses).
+`:phantom`, `:scanner`, `:asc`, `:raw_data`, or `:configuration` (explicit because `.h5` has multiple uses).
+ASC files retain acoustic forbidden bands for this window's sequence spectra.
 Configuration TOML files merge `[sim_params]` and `[recon_params]` into the window's
 current parameters; omitted settings are unchanged. Both sections are parsed and
 converted before applying either. Returns the merged parameter dictionaries.
@@ -115,6 +116,15 @@ Does not run simulation or reconstruction.
 function load_file!(w, target, filename)
     return ui_operation(w, Symbol("load_", target)) do
         path = abspath(filename)
+        if target === :asc
+            bands = read_acoustic_bands(path)
+            w.forbidden_bands[] = bands
+            w.files[target] = path
+            update_filename!(w, "ascname", basename(path))
+            w.state[] == "spectrum" && show_sequence!(w, w.seq[], :spectrum; physio=w.physio[])
+            toast!(w, 0, "Loaded ASC", html_escape(basename(path)))
+            return bands
+        end
         if target === :configuration
             params = read_configuration(path; sim_params=w.sim_params[], recon_params=w.rec_params[])
             params.sim_params == w.sim_params[] || (w.sim_params[] = params.sim_params)
@@ -172,6 +182,12 @@ function setup_actions!(w)
             show_sequence!(w, w.seq[], view; physio=w.physio[])
         end
     end
+    handle(w, "view_spectrum") do _
+        ui_operation(w, :view_spectrum) do
+            show_sequence!(w, w.seq[], :spectrum; physio=w.physio[])
+        end
+        return nothing
+    end
     handle(w, "view_phantom") do _
         show_phantom!(w, w.obj[])
     end
@@ -203,7 +219,7 @@ function setup_actions!(w)
         show_image!(w, w.img[], :absk)
     end
 
-    for target in (:sequence, :phantom, :scanner, :raw_data, :configuration)
+    for target in (:sequence, :phantom, :scanner, :asc, :raw_data, :configuration)
         handle(w, "reload_$target") do _
             haskey(w.files, target) && load_file!(w, target, w.files[target])
             return nothing

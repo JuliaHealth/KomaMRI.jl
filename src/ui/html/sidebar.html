@@ -29,6 +29,7 @@
             </ul>
           </li>
           <li><a id="button_pulses_slew_rate" class="dropdown-item" href="#" onclick='KomaUI.notify("view_slew_rate")'>View slew rate</a></li>
+          <li><a id="button_pulses_spectrum" class="dropdown-item" href="#" onclick='KomaUI.notify("view_spectrum")'>View spectrum</a></li>
           <li><a id="button_sequence_definitions" class="dropdown-item" href="#" onclick='KomaUI.notify("view_sequence_definitions")'>View definitions</a></li>
           <li><hr class="dropdown-divider"></li>
           <li class="dropdown-interact">
@@ -72,6 +73,15 @@
         <li><a id="button_scanner_gradient" class="dropdown-item disabled" href="#" aria-disabled="true" tabindex="-1">View gradients</a></li>
         <li><a id="button_scanner" class="dropdown-item" href="#" onclick='KomaUI.notify("view_coil_sensitivities")'>View coil sensitivities</a></li>
         <li><a id="button_scanner_transmitter" class="dropdown-item disabled" href="#" aria-disabled="true" tabindex="-1">View B₁ maps</a></li>
+        <li class="dropdown-interact">
+          <div class="filepicker-row">
+            <span id="ascfilepicker"></span>
+            <button id="button_reload_asc" class="file-reload-button" type="button" onclick='KomaUI.notify("reload_asc")' title="Reload ASC" disabled>
+              <i class="bi bi-arrow-clockwise"></i>
+            </button>
+          </div>
+          <span id="ascname" class="d-none">Load ASC</span>
+        </li>
         <li><hr class="dropdown-divider"></li>
         <li class="dropdown-interact">
           <div class="filepicker-row">
