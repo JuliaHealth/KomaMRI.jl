@@ -100,6 +100,7 @@ function callback_filepicker(filename::String, w::KomaWindow, sys::Scanner)
 end
 
 function setup_filepickers!(w::KomaWindow)
+    setup_filepicker!(w, "#ascfilepicker", "#ascname", "Load ASC", :asc; accept=".asc")
     setup_filepicker!(
         w,
         "#seqfilepicker",
@@ -183,6 +184,7 @@ function setup_filepicker!(
                 input.style.display = 'none';
                 const button = document.createElement('label');
                 button.className = 'koma-file-input';
+                button.dataset.filename = $(current);
                 button.title = $(label);
                 const icon = document.createElement('i');
                 icon.className = 'bi bi-folder2-open';
@@ -199,10 +201,10 @@ function setup_filepicker!(
                 const loadedName = $(haskey(w.files, target) ? basename(w.files[target]) : "");
                 const name = loadedName || filename.textContent.trim() || $(label);
                 filename.textContent = name;
-                filename.previousElementSibling.querySelector('.file-reload-button').disabled = !loadedName;
+                host.closest('.filepicker-row').querySelector('.file-reload-button').disabled = !loadedName;
                 setCaption(name);
-                const toggle = filename.previousElementSibling.querySelector('.koma-nav-link');
-                toggle.title = toggle.getAttribute('aria-label') + ': ' + name;
+                const toggle = filename.previousElementSibling?.querySelector('.koma-nav-link');
+                if (toggle) toggle.title = toggle.getAttribute('aria-label') + ': ' + name;
                 button.append(icon, caption, input);
                 host.replaceChildren(button);
                 input.addEventListener('change', async event => {

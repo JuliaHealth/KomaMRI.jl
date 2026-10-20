@@ -40,6 +40,11 @@ See the [scanner file reference](../reference/4-koma-files.md#Scanner) for creat
 Select `View limits` for hardware limits or `View coil sensitivities` for receive maps.
 `View gradients` and `View B₁ maps` are not yet available and are disabled.
 
+Select `Load ASC` in the same menu to load acoustic forbidden frequency bands
+from a Siemens gradient-system `.asc` file. The bands stay loaded in that window
+when switching views or loading another sequence; the adjacent reload button
+rereads the file.
+
 ![](../assets/gui-scanner-view.png){style="width:90%"}
 
 ### Phantom
@@ -51,6 +56,14 @@ Select `View limits` for hardware limits or `View coil sensitivities` for receiv
 ### Sequence
 
 Select `View definitions` to inspect the loaded sequence's `DEF` dictionary, including any `FOV`, `Nx`, `Ny`, and `Nz` values.
+
+Select `View spectrum` for the gradient frequency spectrum (Gx, Gy, Gz, and their
+root-sum-of-squares Gtot) up to 3,000 Hz. The calculation follows Pulseq's
+`seq.gradSpectrum`: 5,000 gradient-raster samples per window, 50% overlap,
+3× FFT padding, DC removal across the padded window, and Hann windowing only
+for sequences longer than one window. Loaded ASC bands appear as shaded, muted red
+regions with solid center lines and dashed bandwidth edges. A spectrum can also
+be viewed without an ASC.
 
 `Sequence` → `View sequence`:
 
@@ -208,6 +221,8 @@ w = KomaUI(; return_window=true)
 
 # Load inputs without a dialog
 load_file!(w, :sequence, "example.seq")   # Or: w.seq[] = seq
+load_file!(w, :asc, "MP_GradSys.asc")     # Retained for subsequent spectra
+click!(w, :view_spectrum)
 load_file!(w, :phantom, "brain.phantom")  # Or: w.obj[] = obj
 load_file!(w, :scanner, "scanner.sys")    # Or: w.sys[] = sys
 load_file!(w, :configuration, "settings.toml")  # Optional parameter overrides

@@ -1,7 +1,7 @@
 include("ui/BonitoPlotly.jl")
+include("ui/ViewUI.jl")
 include("ui/WindowUI.jl")
 include("ui/FilePickerUI.jl")
-include("ui/ViewUI.jl")
 include("ui/ExportUI.jl")
 include("ui/SimulationUI.jl")
 include("ui/UIActions.jl")

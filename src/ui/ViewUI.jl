@@ -1,3 +1,146 @@
+const AcousticBand = @NamedTuple{freq::Float64, bw::Float64}
+
+function read_acoustic_bands(filename)
+    frequencies, bandwidths = Dict{Int,Float64}(), Dict{Int,Float64}()
+    stem, extension = splitext(filename)
+    companion = stem * "_GSWD_SAFETY" * extension
+    for path in (isfile(companion) ? (filename, companion) : (filename,))
+        for line in eachline(path)
+            strip(line) == "### ASCCONV END ###" && break
+            entry = match(r"^\s*asGPAParameters\[0\]\.sGCParameters\.aflAcousticResonance(Frequency|Bandwidth)\[(\d+)\]\s*=\s*([^\s/#]+)", line)
+            isnothing(entry) && continue
+            values = entry[1] == "Frequency" ? frequencies : bandwidths
+            values[parse(Int, entry[2])] = parse(Float64, entry[3])
+        end
+    end
+    isempty(frequencies) && throw(ArgumentError("No acoustic resonance frequencies found in ASC file."))
+    return AcousticBand[(freq=frequencies[i], bw=bandwidths[i])
+        for i in sort!(collect(keys(frequencies))) if frequencies[i] > 0]
+end
+
+function spectrum_gradient_samples(gradient, dt)
+    samples = KomaMRIBase.event_samples(gradient)
+    if isempty(samples.t) && dur(gradient) > gradient.delay
+        return (t=[gradient.delay, dur(gradient)], A=[0.0, 0.0])
+    end
+    return (t=samples.t, A=samples.A .* γ)
+end
+
+function spectrum_gradient_samples(gradient::Union{KomaMRIBase.UniformlySampledGrad,KomaMRIBase.TimeShapedGrad}, dt)
+    samples = KomaMRIBase.event_samples(gradient)
+    isempty(samples.t) && return (t=[gradient.delay, dur(gradient)], A=[0.0, 0.0])
+    amplitudes = gradient.A .* γ
+    n = length(amplitudes)
+    raster_centers = all(i -> abs((samples.t[i + 1] - gradient.delay) / dt - (i - 0.5)) < 1e-6, 1:n)
+    raster_centers || return (t=samples.t, A=samples.A .* γ)
+
+    # Match Pulseq's restoreAdditionalShapeSamples, including its Hz/m thresholds.
+    restored = [gradient.first * γ; zeros(n)]
+    for i in 1:n
+        restored[i + 1] = 2amplitudes[i] - restored[i]
+    end
+    scale = maximum(abs, amplitudes)
+    abs(last(restored) - gradient.last * γ) > 2e-5 * scale &&
+        return (t=samples.t, A=samples.A .* γ)
+    interpolated = [gradient.first * γ; (amplitudes[1:end-1] .+ amplitudes[2:end]) ./ 2; gradient.last * γ]
+    edges = ifelse.(abs.(restored .- interpolated) .<= eps() + 2e-5 * scale, interpolated, restored)
+    waveform = zeros(2n + 1)
+    waveform[1:2:end] .= edges
+    waveform[2:2:end] .= amplitudes
+    changes = abs.([1; diff(diff(waveform)); 1]) .> 1e-8
+    return (t=(gradient.delay .+ (0:2n) .* dt ./ 2)[changes], A=waveform[changes])
+end
+
+function spectrum_waveforms(seq, dt)
+    starts = get_block_start_times(seq)
+    return map(axes(seq.GR, 1)) do axis
+        t, A = Float64[], Float64[]
+        for block in eachindex(seq.DUR)
+            gradient = seq.GR[axis, block]
+            samples = spectrum_gradient_samples(gradient, dt)
+            isempty(samples.t) && continue
+            times = starts[block] .+ samples.t
+            amplitudes = samples.A
+            # Pulseq inserts half-raster ramps when nonzero gradients are separated by a gap.
+            if !isempty(t) && last(t) + dt < first(times)
+                if abs(last(A)) > 1e-6
+                    push!(t, last(t) + dt / 2)
+                    push!(A, 0)
+                else
+                    A[end] = 0
+                end
+                if abs(first(amplitudes)) > 1e-6
+                    pushfirst!(times, first(times) - dt / 2)
+                    pushfirst!(amplitudes, 0)
+                else
+                    amplitudes[1] = 0
+                end
+            end
+            for (time, amplitude) in zip(times, amplitudes)
+                if isempty(t) || time > last(t)
+                    push!(t, time)
+                    push!(A, amplitude)
+                end
+            end
+        end
+        (; t, A)
+    end
+end
+
+function gradient_spectrum(seq; fmax=3000)
+    dt = seq.DEF["GradientRasterTime"]
+    nwin, oversampling = 5000, 3
+    frequencies = (0:(nwin ÷ 2 - 1)) ./ nwin ./ dt ./ oversampling
+    nf = count(<=(fmax), frequencies)
+    waveforms = spectrum_waveforms(seq, dt)
+    tmax = maximum(samples -> isempty(samples.t) ? 0.0 : last(samples.t), waveforms)
+    tmax > 0 || throw(ArgumentError("Empty sequence passed to gradient spectrum."))
+    nt = ceil(Int, tmax / dt)
+    nsegments = cld(nt, nwin)
+    sample_times = ((1:nt) .- 0.5) .* dt
+    window = 0.5 .* (1 .- cos.(2π .* (1:nwin) ./ nwin))
+    Rax = zeros(length(waveforms), nf)
+    for (axis, samples) in enumerate(waveforms)
+        waveform = KomaMRIBase.linear_interpolate_samples(samples, sample_times)
+        append!(waveform, zeros(nsegments * nwin - nt))
+        for start in 1:(nwin ÷ 2):(length(waveform) - nwin + 1)
+            segment = zeros(nwin * oversampling)
+            segment[1:nwin] .= @view waveform[start:(start + nwin - 1)]
+            # Pulseq removes DC across the padded window, before applying the Hann window.
+            segment .-= sum(segment) / length(segment)
+            nsegments > 1 && (segment[1:nwin] .*= window)
+            Rax[axis, :] .+= abs2.(@view fft(segment)[1:nf])
+        end
+    end
+    Rax .= sqrt.(Rax ./ (2nsegments - 1))
+    return (; R=vec(sqrt.(sum(abs2, Rax; dims=1))), Rax, F=frequencies[1:nf])
+end
+
+function plot_spectrum(seq, bands; darkmode=false)
+    (; R, Rax, F) = gradient_spectrum(seq)
+    data = [PlotlyBase.scatter(; x=F, y=Rax[axis, :], mode="lines", name)
+        for (axis, name) in enumerate(("Gx", "Gy", "Gz"))]
+    push!(data, PlotlyBase.scatter(; x=F, y=R, mode="lines", name="Gtot"))
+    band_color = "#b57e83"
+    band_regions = [PlotlyBase.attr(; type="rect", x0=band.freq - band.bw / 2,
+        x1=band.freq + band.bw / 2, yref="paper", y0=0, y1=1,
+        fillcolor=band_color, opacity=0.18, line_width=0, layer="below") for band in bands]
+    band_lines = [PlotlyBase.attr(; type="line", x0=frequency, x1=frequency,
+        yref="paper", y0=0, y1=1, line=PlotlyBase.attr(; color=band_color, dash))
+        for band in bands for (frequency, dash) in
+            ((band.freq, "solid"), (band.freq - band.bw / 2, "dash"), (band.freq + band.bw / 2, "dash"))]
+    background, text, plot_background, grid, _ = KomaMRIPlots.theme_chooser(darkmode)
+    layout = PlotlyBase.Layout(; xaxis=PlotlyBase.attr(; title="Frequency / Hz", range=[0, 3000], gridcolor=grid),
+        yaxis=PlotlyBase.attr(; title="Gradient spectrum / Hz/m", rangemode="tozero", gridcolor=grid,
+            exponentformat="power"),
+        legend=PlotlyBase.attr(; orientation="h"), shapes=[band_regions; band_lines],
+        annotations=[PlotlyBase.attr(; x=band.freq, y=1, yref="paper", yanchor="bottom",
+            text="$(band.freq) Hz", font_color=band_color, showarrow=false) for band in bands],
+        paper_bgcolor=background, plot_bgcolor=plot_background, font_color=text,
+        margin=PlotlyBase.attr(; t=40, r=24, b=50, l=70))
+    return PlotlyBase.Plot(data, layout; config=PlotlyBase.PlotConfig(; displaylogo=false, responsive=true))
+end
+
 function show_sequence!(w, seq, view; darkmode=w.darkmode[], physio=NoPhysioSignal())
     if view === :sequence
         display_loading!(w, "Plotting sequence ...")
@@ -25,6 +168,10 @@ function show_sequence!(w, seq, view; darkmode=w.darkmode[], physio=NoPhysioSign
         display_loading!(w, "Plotting slew rate ...")
         plot = plot_slew_rate(seq; adaptive=true, slider=true, darkmode, physio)
         set_content!(w, sequence_comparison(seq, plot; darkmode, physio), "slew_rate")
+    elseif view === :spectrum
+        display_loading!(w, "Plotting gradient spectrum ...")
+        plot = fetch(Threads.@spawn plot_spectrum(resolve_triggers(seq, physio), w.forbidden_bands[]; darkmode))
+        set_content!(w, plot_node(plot), "spectrum")
     else
         throw(ArgumentError("Unsupported sequence view: $view"))
     end

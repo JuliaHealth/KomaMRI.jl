@@ -49,6 +49,7 @@ struct KomaWindow
     home::Base.RefValue{Any}
     handlers::Dict{String,Function}
     files::Dict{Symbol,String}
+    forbidden_bands::Base.RefValue{Vector{AcousticBand}}
     on_render::Vector{Function}
     listeners::Vector{ObserverFunction}
     window_options::Dict{String,Any}
@@ -87,7 +88,7 @@ function set_content!(w::KomaWindow, content, state)
     evaljs(w, js"""(() => {
         const section = {
             sequence: 'pulses', seqdefs: 'pulses', kspace: 'pulses', m0: 'pulses', m1: 'pulses', m2: 'pulses',
-            slew_rate: 'pulses',
+            slew_rate: 'pulses', spectrum: 'pulses',
             phantom: 'phantom', coils: 'scanner', scanneparams: 'scanner', sig: 'sig',
             absi: 'recon', absk: 'recon'
         }[$(state)];
@@ -497,6 +498,7 @@ function setup_bonito_window(sys, seq, obj, sim_params, rec_params;
         home,
         handlers,
         Dict{Symbol,String}(),
+        Ref(AcousticBand[]),
         render_callbacks,
         listeners,
         window_options,
@@ -575,12 +577,12 @@ function update_filename!(w, id, name)
         label.title = $(name);
         label.textContent = $(name);
         current.replaceChildren(label);
-        const section = current.previousElementSibling;
+        const picker = document.querySelector('[data-filename="#' + $(id) + '"]');
+        const section = picker?.closest('.filepicker-row') ?? current.previousElementSibling;
         const reload = section.querySelector('.file-reload-button');
         if (reload) reload.disabled = false;
-        const toggle = section.querySelector('.koma-nav-link');
-        toggle.title = toggle.getAttribute('aria-label') + ': ' + $(name);
-        const picker = section.querySelector('.koma-file-input');
+        const toggle = current.previousElementSibling?.querySelector('.koma-nav-link');
+        if (toggle) toggle.title = toggle.getAttribute('aria-label') + ': ' + $(name);
         if (picker) {
             const caption = picker.querySelector('.koma-file-name');
             caption.textContent = $(display_filename(name, MAX_UI_FILENAME_CHARS));
