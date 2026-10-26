@@ -865,7 +865,14 @@ function get_labels(seq::Sequence, nBlocks::Int=length(seq.EXT))
   end
 
   labels = AdcLabels[]
-  label = AdcLabels()
+  custom_labels = Dict{Symbol,Int}()
+  for ext in Iterators.flatten(@view seq.EXT[1:nBlocks])
+    name = _adc_label_name(ext)
+    if !isnothing(name) && !(name in ADC_LABEL_NAMES)
+      custom_labels[name] = 0
+    end
+  end
+  label = AdcLabels(; custom_labels)
 
   for b = 1:nBlocks
     for val in seq.EXT[b]
@@ -913,5 +920,10 @@ end
 function Base.maximum(label::Vector{AdcLabels})
 	isempty(label) && throw(ArgumentError("collection must be non-empty"))
 	values = ntuple(i -> maximum(getfield(adc_label, i) for adc_label in label), Val(length(ADC_LABEL_NAMES)))
-	return AdcLabels(values...)
+	custom_names = reduce(union, (setdiff(propertynames(adc_label), ADC_LABEL_NAMES) for adc_label in label))
+	custom_labels = Dict(
+		name => maximum(get(getfield(adc_label, :_custom_labels), name, 0) for adc_label in label)
+		for name in custom_names
+	)
+	return AdcLabels(values...; custom_labels)
 end

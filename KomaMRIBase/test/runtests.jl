@@ -1584,6 +1584,15 @@ end
 
         labels = get_labels(seq)
         @test [label.LIN for label in labels] == [1, 3]
+
+        custom_seq = PulseDesigner.build_label(:SET, :MYCUSTOM, 7)
+        append!(custom_seq, PulseDesigner.build_label(:INC, :MYCUSTOM, 2))
+        custom_labels = get_labels(custom_seq)
+
+        # Custom labels accumulate across blocks without changing standard counters.
+        @test [label.MYCUSTOM for label in custom_labels] == [7, 9]
+        @test [label.LIN for label in custom_labels] == [0, 0]
+        @test maximum(custom_labels).MYCUSTOM == 9
     end
     @testset "build_delay" begin
         seq = PulseDesigner.build_delay(2u"ms")

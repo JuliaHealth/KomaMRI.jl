@@ -300,8 +300,8 @@ end
 
 function _assert_nonnegative_adc_labels(seq::Sequence)
     for (block, labels) in enumerate(get_labels(seq))
-        for name in fieldnames(AdcLabels)
-            value = getfield(labels, name)
+        for name in propertynames(labels)
+            value = getproperty(labels, name)
             value < 0 && error("Negative ADC label found at block $block: `$name` with value `$value`.")
         end
     end

@@ -41,10 +41,7 @@ label_event(::Val{type}) where {type} =
     error("Unsupported label type `:$type`; use :SET or :INC.")
 
 label_name(label) = error("Label name must be a Symbol, for example :LIN or :SLC.")
-function label_name(label::Symbol)
-    label in KomaMRIBase.ADC_LABEL_NAMES || error("Unsupported ADC label `$label`.")
-    return String(label)
-end
+label_name(label::Symbol) = String(label)
 
 label_value(value) = error("Label value must be integer-valued.")
 label_value(value::Bool) = Int(value)

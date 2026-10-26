@@ -111,13 +111,14 @@
         )
 
         labeled = Sequence()
-        @addblock labeled += (ADC(1, 1e-6), LabelSet(0, "LIN"), LabelSet(1, "REV"))
+        @addblock labeled += (ADC(1, 1e-6), LabelSet(0, "LIN"), LabelSet(1, "REV"), LabelSet(2, "MYCUSTOM"))
         @addblock labeled += (ADC(1, 1e-6), LabelSet(3, "LIN"), LabelSet(0, "REV"))
         labels = plot_seq(labeled)
         test_plot(labels)
         trace_names = [get(trace, :name, nothing) for trace in labels.data]
         @test "LIN" in trace_names
         @test "REV" in trace_names
+        @test "MYCUSTOM" in trace_names
 
         triggered = Sequence()
         preceding_delay = Delay(1e-3)
