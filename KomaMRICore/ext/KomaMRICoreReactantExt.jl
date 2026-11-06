@@ -7,7 +7,11 @@ using KomaMRICore
 using ReactantCore: promote_to_traced
 import KomaMRICore: _prepare_sequence,
     _run_simulation_block!, acquire_signal!, _sample_counter, gpu_grid_interval,
-    gpu_interpolate_cell, gpu_coil_sample, prealloc_sensitivities, CoilSensitivities
+    gpu_interpolate_cell, gpu_coil_sample, prealloc_sensitivities, CoilSensitivities,
+    adapt_storage
+
+adapt_storage(T::Type{<:Real}, xs::Reactant.AnyTracedRArray{<:Real}) = T.(xs)
+adapt_storage(T::Type{<:Real}, xs::Reactant.AnyTracedRArray{<:Complex}) = Complex{T}.(xs)
 
 function gpu_grid_interval(grid, query::Reactant.AnyTracedRArray)
     n = length(grid)
