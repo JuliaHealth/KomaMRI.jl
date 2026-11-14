@@ -15,29 +15,25 @@ Base.show(io::IO, s::BlochDict) = begin
     print(io, "BlochDict(save_Mz=$(s.save_Mz))")
 end
 
-struct BlochDictPrealloc{T,R} <: PreallocResult{T}
+struct BlochDictPrealloc{R} <: PreallocResult
     spin_reset::R
 end
 
-BlochDictPrealloc(::Type{T}, spin_reset) where {T} =
-    BlochDictPrealloc{T,typeof(spin_reset)}(spin_reset)
-
-Base.view(prealloc::BlochDictPrealloc{T}, i::UnitRange) where {T} =
-    BlochDictPrealloc(T, view(prealloc.spin_reset, i))
+Base.view(prealloc::BlochDictPrealloc, i::UnitRange) =
+    BlochDictPrealloc(view(prealloc.spin_reset, i))
 
 function prealloc(
     ::BlochDict, backend::KA.Backend, obj, _M,
     max_block_length, _max_adc_samples, _groupsize, _sys,
 )
     return BlochDictPrealloc(
-        eltype(obj.x),
         prealloc_spin_reset(obj.motion, backend, length(obj), max_block_length),
     )
 end
 
 function sim_output_dim(
-    obj::Phantom{T}, seq::Sequence, sys::Scanner, sim_method::BlochDict
-) where {T<:Real}
+    obj::Phantom, seq::Sequence, sys::Scanner, sim_method::BlochDict
+)
     out_state_dim = sim_method.save_Mz ? 2 : 1
     return (sum(seq.ADC.N), length(obj), out_state_dim)
 end
@@ -63,16 +59,17 @@ precession.
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
 function run_spin_precession!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    p::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    M::Mag,
     _,
     sim_method::BlochDict,
     groupsize,
     backend::KA.Backend,
     prealloc::PreallocResult
-) where {T<:Real}
+)
+    T = eltype(p.ρ)
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
     #Effective field

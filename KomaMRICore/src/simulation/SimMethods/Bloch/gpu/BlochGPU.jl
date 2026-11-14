@@ -4,16 +4,16 @@ include("ExcitationKernel.jl")
 
 """Stores preallocated arrays for use in Bloch GPU run_spin_precession! and run_spin_excitation! functions."""
 struct BlochGPUPrealloc{
-    T,
-    C<:AbstractMatrix{Complex{T}},
-    R<:AbstractVector{T},
+    SignalType<:AbstractMatrix,
+    ReducedSignalType<:AbstractMatrix,
+    OffResonanceType<:AbstractVector,
     S,
     P,
     F,
-} <: PreallocResult{T}
-    sig_output::C
-    sig_output_final::C
-    ΔBz::R
+} <: PreallocResult
+    sig_output::SignalType
+    sig_output_final::ReducedSignalType
+    ΔBz::OffResonanceType
     receiver::S
     coordinates::P
     spin_reset::F
@@ -22,7 +22,7 @@ end
 function bloch_gpu_prealloc(
     backend, obj, max_block_length, max_adc_samples, groupsize, sys,
 )
-    T = eltype(obj.x)
+    T = eltype(obj.ρ)
     ncoils = get_n_coils(sys.receiver)
     signal_length = max_adc_samples * ncoils
     return BlochGPUPrealloc(
@@ -93,16 +93,17 @@ function reduce_signal_groups!(sig, pre, nspins, groupsize)
 end
 
 function run_spin_precession!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    p::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    M::Mag,
     sys,
     sim_method::BlochMagnusBGL4,
     groupsize::Integer,
     backend::KA.Backend,
     pre::BlochGPUPrealloc
-) where {T<:Real}
+)
+    T = eltype(p.ρ)
     x, y, z = spin_coordinates!(
         pre.coordinates, p.motion, p.x, p.y, p.z, seq.t',
     )
@@ -127,16 +128,17 @@ function run_spin_precession!(
 end
 
 function run_spin_precession!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    p::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    M::Mag,
     sys,
     sim_method::SM,
     groupsize::Integer,
     backend::KA.Backend,
     pre::BlochGPUPrealloc
-) where {T<:Real, SM<:BlochLikeSimMethods}
+) where {SM<:BlochLikeSimMethods}
+    T = eltype(p.ρ)
     #Motion
     x, y, z = spin_coordinates!(
         pre.coordinates, p.motion, p.x, p.y, p.z, seq.t',
@@ -164,29 +166,30 @@ function run_spin_precession!(
 end
 
 run_spin_precession!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    p::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    M::Mag,
     sys,
     sim_method::BlochMagnusBGL6,
     groupsize::Integer,
     backend::KA.Backend,
     pre::BlochGPUPrealloc
-) where {T<:Real} =
+) =
     run_spin_precession!(p, seq, sig, M, sys, BlochMagnusBGL4(), groupsize, backend, pre)
 
 function run_spin_excitation!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    p::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    M::Mag,
     sys,
     sim_method::BlochMagnusBGL4,
     groupsize::Integer,
     backend::KA.Backend,
     pre::BlochGPUPrealloc
-) where {T<:Real}
+)
+    T = eltype(p.ρ)
     x, y, z = spin_coordinates!(
         pre.coordinates, p.motion, p.x, p.y, p.z, seq.t',
     )
@@ -211,16 +214,17 @@ function run_spin_excitation!(
 end
 
 function run_spin_excitation!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    p::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    M::Mag,
     sys,
     sim_method::SM,
     groupsize::Integer,
     backend::KA.Backend,
     pre::BlochGPUPrealloc
-) where {T<:Real, SM<:BlochLikeSimMethods}
+) where {SM<:BlochLikeSimMethods}
+    T = eltype(p.ρ)
     #Motion
     x, y, z = spin_coordinates!(
         pre.coordinates, p.motion, p.x, p.y, p.z, seq.t',
@@ -248,17 +252,18 @@ function run_spin_excitation!(
 end
 
 run_spin_excitation!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    p::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    M::Mag,
     sys,
     sim_method::BlochMagnusBGL6,
     groupsize::Integer,
     backend::KA.Backend,
     pre::BlochGPUPrealloc
-) where {T<:Real} =
+) =
 begin
+    T = eltype(p.ρ)
     x, y, z = spin_coordinates!(
         pre.coordinates, p.motion, p.x, p.y, p.z, seq.t',
     )

@@ -6,22 +6,18 @@ struct BlochSimple <: SimulationMethod end
 
 export BlochSimple
 
-struct BlochSimplePrealloc{T,R} <: PreallocResult{T}
+struct BlochSimplePrealloc{R} <: PreallocResult
     spin_reset::R
 end
 
-BlochSimplePrealloc(::Type{T}, spin_reset) where {T} =
-    BlochSimplePrealloc{T,typeof(spin_reset)}(spin_reset)
-
-Base.view(prealloc::BlochSimplePrealloc{T}, i::UnitRange) where {T} =
-    BlochSimplePrealloc(T, view(prealloc.spin_reset, i))
+Base.view(prealloc::BlochSimplePrealloc, i::UnitRange) =
+    BlochSimplePrealloc(view(prealloc.spin_reset, i))
 
 function prealloc(
     ::BlochSimple, backend::KA.Backend, obj, _M,
     max_block_length, _max_adc_samples, _groupsize, _sys,
 )
     return BlochSimplePrealloc(
-        eltype(obj.x),
         prealloc_spin_reset(obj.motion, backend, length(obj), max_block_length),
     )
 end
@@ -64,16 +60,17 @@ precession.
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
 function run_spin_precession!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    p::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    M::Mag,
     sys,
     sim_method::SimulationMethod,
     groupsize,
     backend::KA.Backend,
     prealloc::PreallocResult
-) where {T<:Real}
+)
+    T = eltype(p.ρ)
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')::NTuple{3,AbstractArray{T}}
     #Effective field
@@ -126,16 +123,17 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
     precession simulation step)
 """
 function run_spin_excitation!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    p::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    M::Mag,
     sys,
     sim_method::SimulationMethod,
     groupsize,
     backend::KA.Backend,
     prealloc::PreallocResult
-) where {T<:Real}
+)
+    T = eltype(p.ρ)
     sample = 1
     spin_reset = spin_reset_state(prealloc, p.motion, seq.t, backend, length(p))
     advance_spin_reset!(spin_reset, firstindex(seq.t))
