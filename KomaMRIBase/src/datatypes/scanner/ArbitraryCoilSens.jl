@@ -10,7 +10,7 @@ struct ArbitraryCoilSens{
     X<:AbstractVector,
     Y<:AbstractVector,
     Z<:AbstractVector,
-    S<:AbstractArray{<:Complex,4},
+    S<:AbstractArray{<:Number,4},
 } <: AbstractRFReceiveSystem
     x::X
     y::Y
