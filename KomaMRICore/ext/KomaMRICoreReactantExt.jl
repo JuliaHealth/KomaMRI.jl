@@ -92,4 +92,57 @@ function acquire_signal!(sig::Reactant.AnyTracedRMatrix, sample, Mxy, sensitivit
     return nothing
 end
 
+# Nested `@trace` blocks must live in separate functions
+function _run_block!(is_excitation, obj, block, sig, Xt, sys, sim_method,
+    excitation_groupsize, precession_groupsize, backend, prealloc, sample)
+    @trace track_numbers=false if is_excitation
+        KomaMRICore.run_spin_excitation!(obj, block, sig, Xt, sys, sim_method,
+            excitation_groupsize, backend, prealloc, sample)
+    else
+        KomaMRICore.run_spin_precession!(obj, block, sig, Xt, sys, sim_method,
+            precession_groupsize, backend, prealloc, sample)
+    end
+    return nothing
+end
+
+# One compiled body for all blocks, checkpointed per block for reverse mode
+function KomaMRICore.run_sim_time_iter!(
+    obj::Phantom{<:Reactant.AnyTracedRVector}, seqd, sig::AbstractArray,
+    Xt::KomaMRICore.SpinStateRepresentation, sys, sim_method::Bloch,
+    backend::KomaMRICore.KA.CPU;
+    parts, excitation_bool, max_adc_samples, precession_groupsize,
+    excitation_groupsize, Nthreads=1, kwargs...,
+)
+    Nthreads == 1 || error("Compiled simulation requires Nthreads=1")
+    isempty(parts) && return nothing
+    L = maximum(length, parts)
+    # Kernels read size(sig, 1) == length(Δt) as "ADC on at every step": pad to avoid it
+    L += size(sig, 1) == L - 1
+    prealloc_result = KomaMRICore.prealloc(sim_method, backend, obj, Xt, L,
+        max_adc_samples, min(precession_groupsize, excitation_groupsize), sys)
+    # Blocks as columns, padded with zero-duration steps
+    traced(x) = Reactant.promote_to(Reactant.TracedRArray, x)
+    idx = [r[min(i, end)] for i in 1:L, r in parts]
+    pack(v, I=idx) = traced(v)[I]
+    Gx, Gy, Gz, Δf, ψ, t = pack.((seqd.Gx, seqd.Gy, seqd.Gz, seqd.Δf, seqd.ψ, seqd.t))
+    B1 = complex.(pack(real.(seqd.B1)), pack(imag.(seqd.B1)))
+    Δt = pack(seqd.Δt, min.(idx[1:(L - 1), :], length(seqd.Δt))) .*
+        traced([i < length(r) for i in 1:(L - 1), r in parts])
+    ADC = traced([i <= length(r) && seqd.ADC[r[i]] for i in 1:L, r in parts])
+    Nadc = [count(@view seqd.ADC[(first(r) + 1):last(r)]) for r in parts]
+    sample = traced(cumsum(Nadc) .- Nadc .+ 1)
+    is_excitation = traced(excitation_bool)
+    # Static sensitivities are preallocated: keep the receiver maps out of the loop
+    loop_sys = obj.motion isa KomaMRIBase.NoMotion ? KomaMRIBase.Scanner() : sys
+    signal = sig[:, :, 1]
+    @trace checkpointing=true track_numbers=false for b in eachindex(parts)
+        block = DiscreteSequence(Gx[:, b], Gy[:, b], Gz[:, b], B1[:, b], Δf[:, b],
+            ψ[:, b], ADC[:, b], Bool[], t[:, b], Δt[:, b])
+        _run_block!(is_excitation[b], obj, block, signal, Xt, loop_sys, sim_method,
+            excitation_groupsize, precession_groupsize, backend, prealloc_result, sample[b])
+    end
+    isempty(sig) || (sig[:, :, 1] = signal)
+    return nothing
+end
+
 end

@@ -82,7 +82,8 @@ function run_spin_precession!(
     sim_method::Bloch,
     groupsize,
     backend::KA.CPU,
-    prealloc::PreallocResult
+    prealloc::PreallocResult,
+    sample=_sample_counter(sig),
 )
     T = eltype(p.ρ)
     #Rename arrays
@@ -94,7 +95,6 @@ function run_spin_precession!(
     #Initialize
     fill!(ϕ, zero(T))
     block_time = zero(seq.Δt[1])
-    sample = _sample_counter(sig)
     all_adc = size(sig, 1) == length(seq.Δt)
     x, y, z = spin_coordinates!(
         prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[1],
@@ -144,7 +144,8 @@ function run_spin_excitation!(
     sim_method::Union{Bloch,BlochDict},
     groupsize,
     backend::KA.CPU,
-    prealloc::BlochCPUPrealloc
+    prealloc::BlochCPUPrealloc,
+    sample=_sample_counter(sig),
 )
     T = eltype(p.ρ)
     #Rename arrays
@@ -157,7 +158,6 @@ function run_spin_excitation!(
     Maux_xy = prealloc.M.xy
     Maux_z = prealloc.M.z
     #Initialize
-    sample = _sample_counter(sig)
     all_adc = size(sig, 1) == length(seq.Δt)
     # Rotating frame -> RF frame
     ψ_start = seq.ψ[1]
