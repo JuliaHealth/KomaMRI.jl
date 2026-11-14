@@ -49,8 +49,6 @@ function get_slew_rate(seqd::DiscreteSequence)
     Gx, Gy, Gz = get_grads(seqd)
     SR = [Gx[2:end] .- Gx[1:end-1] Gy[2:end] .- Gy[1:end-1] Gz[2:end] .- Gz[1:end-1]] ./ seqd.Δt
     SR[isnan.(SR)] .= 0.0
-    length(seqd.Δt) >= 1 && (SR[1, :] .= 0.0)
-    length(seqd.Δt) >= 2 && (SR[end, :] .= 0.0)
     return SR, values_at_adc_times(seqd, SR, seqd.t[2:end])
 end
 

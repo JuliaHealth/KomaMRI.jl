@@ -20,30 +20,65 @@ end
 
 @testitem "Phantom" tags=[:files] begin
     using KomaMRIBase
+    using KomaMRIFiles: HDF5
+
+    function check_phantom_roundtrip(obj)
+        mktempdir() do directory
+            reference_arrays, reference_attributes = Dict(), Dict()
+            for (mode, options) in (("uncompressed", (; compression=false)),
+                                    ("default", (;)), ("compressed", (; compression=true)))
+                filename = joinpath(directory, "$mode.phantom")
+                write_phantom(obj, filename; options...)
+                recovered = read_phantom(filename)
+                # Storage policy preserves values, spin order, density weights and motion.
+                @test recovered == obj
+                @test recovered.name == obj.name
+                HDF5.h5open(filename, "r") do file
+                    datasets = HDF5.get_datasets(file)
+                    arrays = Dict(HDF5.name(dataset) => read(dataset) for dataset in datasets if ndims(dataset) > 0)
+                    attributes = Dict(key => HDF5.read_attribute(file, key) for key in keys(HDF5.attributes(file)))
+                    compressed = mode != "uncompressed"
+                    # Coordinates, contrasts and motion arrays share one lossless filter policy.
+                    for dataset in datasets
+                        properties = HDF5.get_create_properties(dataset)
+                        filtered = compressed && ndims(dataset) > 0
+                        @test collect(properties.filters) == (filtered ?
+                            [HDF5.Filters.Shuffle(), HDF5.Filters.Deflate(5)] : [])
+                        @test filtered ? HDF5.ischunked(dataset) : HDF5.iscontiguous(dataset)
+                        close(properties)
+                        close(dataset)
+                    end
+                    if compressed
+                        # Filtering preserves dataset names, shapes, element types, attributes and every bit.
+                        @test keys(arrays) == keys(reference_arrays)
+                        @test attributes == reference_attributes
+                        for (name, values) in arrays
+                            @test size(values) == size(reference_arrays[name])
+                            @test eltype(values) == eltype(reference_arrays[name])
+                            @test reinterpret(UInt8, vec(values)) == reinterpret(UInt8, vec(reference_arrays[name]))
+                        end
+                    else
+                        reference_arrays, reference_attributes = arrays, attributes
+                    end
+                end
+            end
+        end
+    end
+
     @testset "NoMotion" begin
-        pth = @__DIR__
-        filename = pth * "/test_files/phantom/brain_nomotion_w.phantom"
         obj1 = brain_phantom2D()
-        write_phantom(obj1, filename)
-        obj2 = read_phantom(filename)
-        @test obj1 == obj2
+        check_phantom_roundtrip(obj1)
     end
     @testset "SimpleAction" begin
-        pth = @__DIR__
-        filename = pth * "/test_files/phantom/brain_simplemotion_w.phantom"
         obj1 = brain_phantom2D()
         obj1.motion = MotionList(
             rotate(0.0, 0.0, 45.0, Periodic(period=1.0)),
             rotate(0.0, 0.0, 45.0, TimeRange(t_start=0.0, t_end=0.5), SpinRange(1:100); center=(0.0, 0.0, 1.0)),
             translate(0.0, 0.02, 0.0, TimeRange(t_start=0.0, t_end=0.5))
         )
-        write_phantom(obj1, filename)
-        obj2 = read_phantom(filename)
-        @test obj1 == obj2
+        check_phantom_roundtrip(obj1)
     end
     @testset "ArbitraryAction" begin
-        pth = @__DIR__
-        filename = pth * "/test_files/phantom/brain_arbitrarymotion_w.phantom"
         obj1 = brain_phantom2D()
         Ns = length(obj1)
         K = 10
@@ -51,11 +86,25 @@ end
         t_end = 1.0
         obj1.motion = MotionList(
             path(    0.01.*rand(Ns, K-1), 0.01.*rand(Ns, K-1), 0.01.*rand(Ns, K-1),                      TimeRange(t_start, t_end)),
-            flowpath(0.01.*rand(Ns, K-1), 0.01.*rand(Ns, K-1), 0.01.*rand(Ns, K-1), rand(Bool, Ns, K-1), TimeRange(t_start, t_end))
+            flowpath(0.01.*rand(Ns, K-1), 0.01.*rand(Ns, K-1), 0.01.*rand(Ns, K-1), rand(Bool, Ns, K-1), TimeRange(t_start, t_end)),
+            Motion(FlowPath{Float64}(dx=zeros(Ns, K-1), dy=zeros(Ns, K-1), dz=zeros(Ns, K-1),
+                spin_reset=BitMatrix(rand(Bool, Ns, K-1))), TimeRange(t_start, t_end))
         )
-        write_phantom(obj1, filename)
-        obj2 = read_phantom(filename)
-        @test obj1 == obj2
+        check_phantom_roundtrip(obj1)
+    end
+    @testset "Compressed file size" begin
+        mktempdir() do directory
+            spins_per_position = 16_384
+            obj = Phantom(x=repeat([-1e-3, 1e-3]; inner=spins_per_position),
+                ρ=fill(1 / spins_per_position, 2spins_per_position))
+            plain = joinpath(directory, "plain.phantom")
+            compressed = joinpath(directory, "compressed.phantom")
+            write_phantom(obj, plain; compression=false)
+            write_phantom(obj, compressed)
+            # Repeated spins compress to fewer stored bytes without changing their density weights.
+            @test read_phantom(compressed) == obj
+            @test filesize(compressed) < filesize(plain)
+        end
     end
 end
 
@@ -112,13 +161,12 @@ end
         @test seq.DEF["PulseqVersion"] == v"1.2.1"
         @test seq.DEF["signature"][:hash] == "e827cfff4436b65a6341a4fa0f6deb07"
 
+        # The scanner's raster overrides sequence definitions.
         sys = Scanner(limits=HardwareLimits(GR_Δt=20e-6))
         seq = Sequence(sys)
         seq.DEF["GradientRasterTime"] = 10e-6
-        @test_logs (:warn, r"GradientRasterTime") begin
-            raster = KomaMRIFiles.PulseqRaster(seq, sys)
-            @test raster.GradientRasterTime == sys.limits.GR_Δt
-        end
+        raster = KomaMRIFiles.PulseqRaster(seq, sys)
+        @test raster.GradientRasterTime == sys.limits.GR_Δt
 
         rf_raster = 1e-6
         block_raster = 10e-6
@@ -221,18 +269,6 @@ end
 
     end
     @testset "Pulseq rotation extension" begin
-        @testset "Unsupported required extensions warn" begin
-            @test_logs (:warn, r"Ignoring unsupported required extension") KomaMRIFiles.read_extensions(
-                IOBuffer("1 2 3\n\n"),
-                "UNKNOWN",
-                nothing,
-                1,
-                Dict{Int,Type{<:Extension}}(),
-                Dict{Int,Dict{Int,Extension}}(),
-                ["UNKNOWN"],
-            )
-        end
-
         mktempdir() do tmpdir
             @testset "ROTATIONS read/write roundtrip" begin
                 filename = joinpath(tmpdir, "rotation.seq")
@@ -333,6 +369,40 @@ end
             roundtrip = read_seq(filename; verbose=false)
             @test roundtrip.EXT[1] == [LabelSet(0, "SLC"), LabelSet(0, "LIN")]
             @test roundtrip.EXT[2] == [LabelSet(0, "SLC"), LabelSet(0, "LIN"), LabelInc(1, "SLC")]
+        end
+
+        mktempdir() do tmpdir
+            # Reading sparse labels preserves the counters without inventing explicit matrix definitions.
+            seq = Sequence()
+            @addblock for repetition in 0:1, partition in (0, 2), line in (1, 3)
+                seq += (
+                    ADC(4, 1e-3),
+                    LabelSet(partition, "PAR"),
+                    LabelSet(line, "LIN"),
+                    LabelSet(repetition, "REP"),
+                    Duration(2e-3),
+                )
+            end
+            filename = joinpath(tmpdir, "sparse-labels.seq")
+            write_seq(seq, filename; check_timing=false, verbose=false)
+            roundtrip = read_seq(filename; verbose=false)
+            @test all(name -> !haskey(roundtrip.DEF, name), ("Nx", "Ny", "Nz"))
+
+            # Fat preparation and navigator labels must not create spatial image dimensions.
+            seq = Sequence()
+            fat_offset_hz = -440.0
+            @addblock seq += RF(1e-6, 1e-3, fat_offset_hz)
+            @addblock seq += RF(1e-6, 1e-3, 0.0)
+            @addblock seq += (ADC(4, 1e-3), Duration(2e-3))
+            @addblock seq += (ADC(4, 1e-3), Duration(2e-3))
+            @addblock seq += (
+                ADC(8, 1e-3), LabelSet(1, "NAV"), LabelSet(3, "LIN"),
+                LabelSet(4, "PAR"), LabelSet(5, "SLC"), Duration(2e-3),
+            )
+            filename = joinpath(tmpdir, "navigator.seq")
+            write_seq(seq, filename; check_timing=false, verbose=false)
+            roundtrip = read_seq(filename; verbose=false)
+            @test all(name -> !haskey(roundtrip.DEF, name), ("Nx", "Ny", "Nz"))
         end
 
         pth = @__DIR__

@@ -32,6 +32,9 @@ end
 function append_sampled_block!(out, values, t0)
     isempty(values.t) && return out
     first_t = t0 + first(values.t)
+    if !isempty(out.t) && same_sampling_time(first_t, last(out.t))
+        first_t = last(out.t)
+    end
     first_row = firstindex(values.t)
     if isempty(out.t)
         append_adc_start_padding!(out, values, first_t)
@@ -45,7 +48,7 @@ function append_sampled_block!(out, values, t0)
     end
     rows = first_row:lastindex(values.t)
     for t in view(values.t, rows)
-        push!(out.t, t0 + t)
+        push!(out.t, t == first(values.t) ? first_t : t0 + t)
     end
     foreach((dst, src) -> append!(dst, dst isa Vector ? view(src, rows) : src[rows]), table_columns(out), table_columns(values))
     append!(out.Δt, values.Δt)

@@ -186,7 +186,7 @@ limits.
 == KomaMRI
 
 ```julia
-sys = Scanner(Gmax=40e-3, Smax=150)
+sys = Scanner(limits=HardwareLimits(Gmax=40e-3, Smax=150))
 seq = Sequence(sys)
 @addblock seq += (rf, z=gz)
 write_seq(seq, "sequence.seq")  # checks raster and hw limits in seq.DEF

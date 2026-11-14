@@ -32,6 +32,7 @@ BlochMagnusBGL6
 
 ```@docs
 get_backend
+get_devices
 print_devices
 gpu
 cpu
@@ -46,7 +47,7 @@ fbig
 signal_to_raw_data
 ```
 
-## `SpinRepresentationState`'s
+## Spin state representations
 
 ```@docs
 Mag

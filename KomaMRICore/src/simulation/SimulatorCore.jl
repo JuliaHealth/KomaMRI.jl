@@ -8,7 +8,7 @@ max_step_sampling_rule(sim_params) =
     MaxStepSizeRule(
         sim_params["Δt"],
         sim_params["Δt_rf"];
-        preserve_samples=get(sim_params, "preserve_samples", (:gradients,)),
+        preserve_samples=get(sim_params, "preserve_samples", (:gradients, :rf_center)),
     )
 
 default_sampling_rule(::SimulationMethod, sim_params) = max_step_sampling_rule(sim_params)
@@ -38,8 +38,9 @@ allowing the user to define some of them.
         flexibility to create your own methods without altering the KomaMRI source code
     * "sampling_rule": controls how sequence waveforms are sampled for simulation. When it is
         not provided, `simulate` derives it from the current `sim_method`, `Δt`, and `Δt_rf`
-    * "preserve_samples": preserve native event samples as simulation times. Supported values are
-        `()`, `(:rf,)`, `(:gradients,)`, and `(:rf, :gradients)`. Defaults to `(:gradients,)`.
+    * "preserve_samples": any combination of `:rf`, `:gradients`, and `:rf_center`.
+        Defaults to `(:gradients, :rf_center)`. Omit `:rf_center` to avoid center-induced
+        subdivisions in convergence studies; other sampling points are retained normally.
     * "freq_in_phase": folds RF frequency modulation into the complex RF waveform before simulation
     * "precision": defines the floating-point simulation precision. You can choose between
         `"f32"`, `"f64"`, and `"bigfloat"` to use `Float32`, `Float64`, and `BigFloat`
@@ -75,7 +76,7 @@ function default_sim_params(sim_params=Dict{String,Any}())
     get!(sim_params, "max_rf_block_length", Inf)
     get!(sim_params, "Δt", 1e-3)
     get!(sim_params, "Δt_rf", 5e-5)
-    get!(sim_params, "preserve_samples", (:gradients,))
+    get!(sim_params, "preserve_samples", (:gradients, :rf_center))
     get!(sim_params, "sim_method", Bloch())
     get!(sim_params, "freq_in_phase", false)
     get!(sim_params, "precision", "f32")
@@ -198,6 +199,8 @@ function run_sim_time_iter!(
     excitation_groupsize=DEFAULT_EXCITATION_GROUPSIZE,
     parts=[1:length(seqd)],
     excitation_bool=ones(Bool, size(parts)),
+    remap_before=falses(length(parts)),
+    remap_sources=nothing,
     max_adc_samples,
     sim_params=Dict{String,Any}(),
     callbacks=(),
@@ -215,7 +218,12 @@ function run_sim_time_iter!(
     )
 
     for (block, p) in enumerate(parts)
+        remap_before[block] && remap_magnetization!(Xt, remap_sources)
         seqd_block = @view seqd[p]
+        # Prepare once before CPU workers receive disjoint views of the reset state.
+        prepare_spin_reset!(
+            spin_reset_state(prealloc_result), obj.motion, seqd_block.t, backend,
+        )
         # Params
         Nadc = sum(seqd_block.ADC[2:end]) # if ADC[1] == true, that is handled by the previous block
         acq_samples = samples:(samples + Nadc - 1)
@@ -275,13 +283,14 @@ function split_range(r, max_block_length, eval_intervals_per_step)
     return [i:min(i + block_length, last(r)) for i in first(r):block_length:(last(r) - 1)]
 end
 
-function get_sim_ranges(seqd::DiscreteSequence; max_block_length=Inf, max_rf_block_length=Inf, eval_intervals_per_step=1)
+function get_sim_ranges(seqd::DiscreteSequence; max_block_length=Inf, max_rf_block_length=Inf, eval_intervals_per_step=1, breaks=Int[])
     ranges, ranges_bool = UnitRange{Int}[], Bool[]; isempty(seqd.Δt) && return ranges, ranges_bool
 
     starts = Int[firstindex(seqd.Δt)]
     for i in (firstindex(seqd.excitation_bool) + 1):lastindex(seqd.excitation_bool)
         seqd.excitation_bool[i] == seqd.excitation_bool[i - 1] || push!(starts, i)
     end
+    sort!(unique!(append!(starts, breaks)))
     stops = [starts[i] - 1 for i in 2:length(starts)]
     push!(stops, lastindex(seqd.Δt))
     for (start, stop) in zip(starts, stops)
@@ -378,12 +387,15 @@ function simulate(
     end
     # Simulation init
     seqd = discretize(seq; sampling_rule, motion=obj.motion, freq_in_phase=sim_params["freq_in_phase"]) # Sampling of Sequence waveforms
+    remap_breaks, remap_sources = cycle_remap_breaks_and_sources(seqd, obj.motion, obj.ρ)
     parts, excitation_bool = get_sim_ranges(
         seqd;
         max_block_length=sim_params["max_block_length"],
         max_rf_block_length=sim_params["max_rf_block_length"],
         eval_intervals_per_step=eval_intervals_per_step(sim_method),
+        breaks=remap_breaks,
     ) # Generating simulation blocks
+    remap_before = [first(p) in remap_breaks for p in parts]
     max_adc_samples = maximum(
         (count(@view seqd.ADC[(first(p) + 1):last(p)]) for p in parts);
         init=0,
@@ -422,6 +434,7 @@ function simulate(
         sys = sys |> gpu #Scanner
         Xt = Xt |> gpu #SpinStateRepresentation
         sig = sig |> gpu #Signal
+        remap_sources = remap_sources |> gpu #Cycle remap indexes
     end
 
     # Simulation
@@ -444,6 +457,8 @@ function simulate(
         excitation_groupsize=sim_params["gpu_groupsize_excitation"],
         parts,
         excitation_bool,
+        remap_before,
+        remap_sources,
         max_adc_samples,
         sim_params,
         callbacks=all_callbacks,

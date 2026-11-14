@@ -109,11 +109,11 @@ struct PulseqRaster
         sys.limits.RF_Δt,
         sys.limits.ADC_Δt,
     )
-    PulseqRaster(seq, sys) = new(
-        get_raster_time("BlockDurationRaster", seq, sys.limits.DUR_Δt),
-        get_raster_time("GradientRasterTime", seq, sys.limits.GR_Δt),
-        get_raster_time("RadiofrequencyRasterTime", seq, sys.limits.RF_Δt),
-        get_raster_time("AdcRasterTime", seq, sys.limits.ADC_Δt),
+    PulseqRaster(seq, sys; verbose=true) = new(
+        get_raster_time("BlockDurationRaster", seq, sys.limits.DUR_Δt; verbose),
+        get_raster_time("GradientRasterTime", seq, sys.limits.GR_Δt; verbose),
+        get_raster_time("RadiofrequencyRasterTime", seq, sys.limits.RF_Δt; verbose),
+        get_raster_time("AdcRasterTime", seq, sys.limits.ADC_Δt; verbose),
     )
 end
 
@@ -146,10 +146,12 @@ function get_raster_time(key::String, seq::KomaMRIBase.Sequence)
     return seq.DEF[key]
 end
 
-function get_raster_time(key::String, seq::KomaMRIBase.Sequence, scanner_value)
+function get_raster_time(key::String, seq::KomaMRIBase.Sequence, scanner_value; verbose=true)
     haskey(seq.DEF, key) || return scanner_value
     value = seq.DEF[key]
-    value == scanner_value || @warn "Sequence and Scanner definition for $key do not match (($(value) != $(scanner_value))). Using the Scanner definition ($key = $scanner_value)."
+    if verbose && value != scanner_value
+        @warn "Sequence and Scanner definition for $key do not match (($(value) != $(scanner_value))). Using the Scanner definition ($key = $scanner_value)."
+    end
     return scanner_value
 end
 

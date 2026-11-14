@@ -52,12 +52,12 @@ seq.write('seq.seq')                       % Write file
 using KomaMRI
 using KomaMRI.PulseDesigner
 
-sys = Scanner(                         # Define scanner
+sys = Scanner(limits=HardwareLimits(   # Define scanner
     Gmax=32e-3, Smax=130.0,
     RF_ring_down_time=30e-6,
     RF_dead_time=100e-6,
     ADC_dead_time=10e-6,
-)
+))
 
 seq = Sequence(sys)                    # Create sequence
 seq.DEF["FOV"] = [fov, fov, dz]        # Set definition
@@ -71,12 +71,12 @@ using KomaMRI
 using KomaMRI.PulseDesigner
 using Unitful
 
-sys = Scanner(                         # Define scanner
+sys = Scanner(limits=HardwareLimits(   # Define scanner
     Gmax=32u"mT/m", Smax=130u"T/m/s",
     RF_ring_down_time=30u"μs",
     RF_dead_time=100u"μs",
     ADC_dead_time=10u"μs",
-)
+))
 
 seq = Sequence(sys)                         # Create sequence
 seq.DEF["FOV"] = [FOV, FOV, dz] .|> to_SI   # Set definition
@@ -153,8 +153,8 @@ adc.dwell                             % ADC dwell
 == Koma
 
 ```julia
-ceil_to_raster(t, sys.GR_Δt)          # Round up to raster
-round_to_raster(t, sys.GR_Δt)         # Round to raster
+ceil_to_raster(t, sys.limits.GR_Δt)   # Round up to raster
+round_to_raster(t, sys.limits.GR_Δt)  # Round to raster
 
 dur(rf, sys)                          # RF duration with sample-edge timing and ring-down
 dur(adc, sys)                         # ADC duration with dwell-edge timing and dead time

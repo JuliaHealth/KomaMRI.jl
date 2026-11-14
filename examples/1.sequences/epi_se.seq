@@ -7,6 +7,10 @@ minor 4
 revision 0
 
 [DEFINITIONS]
+Nx 65
+Ny 64
+Nz 1
+FOV 0.256 0.256 0.003
 AdcRasterTime 1e-07 
 BlockDurationRaster 1e-05 
 EPI 1 
@@ -3221,4 +3225,4 @@ num_samples 2
 # It can be reproduced/verified with md5sum if the file trimmed to the position right above [SIGNATURE]
 # The new line character preceding [SIGNATURE] BELONGS to the signature (and needs to be sripped away for recalculating/verification)
 Type md5
-Hash 3dff7bd5647f2fe939606216d289a4ab
+Hash 46d9aded2e78e23bf1b52b81a7ef2f0b
