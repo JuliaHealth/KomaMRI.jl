@@ -3,12 +3,12 @@ module KomaMRIBaseReactantExt
 using KomaMRIBase
 using Reactant
 
-import KomaMRIBase: RF, is_on
+import KomaMRIBase: RF, _has_waveform
 import KomaMRIBase: linear_interpolate_samples, _foreach_interpolation_sample
 
 # A traced RF waveform has a statically known shape, but its values cannot be
 # inspected on the host to determine whether the event is active.
-is_on(rf::RF{<:Reactant.AnyTracedRVector}) = !isempty(rf.A)
+_has_waveform(rf::RF{<:Reactant.AnyTracedRVector}) = !isempty(rf.A)
 
 _gather_samples(A, indices) = A[indices]
 # Avoid malformed reverse IR for complex gathers followed by strided slices.
