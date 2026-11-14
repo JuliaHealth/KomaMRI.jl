@@ -1,5 +1,6 @@
 using PrecompileTools: @setup_workload, @compile_workload
 using Preferences: load_preference
+import TOML
 
 const CLI_BACKENDS = ("AMDGPU", "CUDA", "Metal", "oneAPI")
 
@@ -17,6 +18,7 @@ KomaMRI command line app.
 
 Usage:
   koma
+  koma --browser --port 9384
   koma -i epi.seq brain.phantom
   koma -i epi.seq brain.phantom -o raw.mrd [image.mat]
 
@@ -26,6 +28,10 @@ Options:
   -b, --backend NAME               CPU (default), CUDA, Metal, AMDGPU, or oneAPI
   -s, --sim-param KEY=VALUE        repeatable simulation parameter
   -r, --recon-param KEY=VALUE      repeatable reconstruction parameter
+      --config FILE               TOML simulation/reconstruction parameters
+      --browser                    serve the UI without opening Electron
+      --host ADDRESS               browser bind address (default: 127.0.0.1)
+      --port PORT                  browser server port (default: 9384)
   -h, --help                       show this help
 
 Julia flags:
@@ -39,6 +45,9 @@ Base.@kwdef mutable struct CLIOptions
     sim_output::Union{Nothing,String} = nothing
     recon_output::Union{Nothing,String} = nothing
     backend::String = "CPU"
+    browser::Bool = false
+    host::String = "127.0.0.1"
+    port::Int = 9384
     sim_params::Dict{String,Any} = Dict{String,Any}("gpu" => false)
     recon_params::Dict{Symbol,Any} = Dict{Symbol,Any}(:reco => "direct")
 end
@@ -84,7 +93,23 @@ end
 
 function cli_param_value(key, value)
     key == "sim_method" && value isa AbstractString && return parse_cli_sim_method(value)
+    key == "recon_policy" && return (; (Symbol(k) => Symbol(v) for (k, v) in pairs(value))...)
     return value
+end
+
+function read_configuration(filename; sim_params=Dict{String,Any}(), recon_params=Dict{Symbol,Any}())
+    config = TOML.parsefile(filename)
+    all(in(("sim_params", "recon_params")), keys(config)) ||
+        throw(ArgumentError("Configuration accepts [sim_params] and [recon_params] sections."))
+    sim = Dict{String,Any}(key => cli_param_value(key, value)
+        for (key, value) in get(config, "sim_params", Dict()))
+    rec = Dict{Symbol,Any}(Symbol(key) => cli_param_value(key, value)
+        for (key, value) in get(config, "recon_params", Dict()))
+    if haskey(rec, :recon_policy)
+        rec[:recon_policy] = reconstruction_policy(merge(
+            get(recon_params, :recon_policy, NamedTuple()), rec[:recon_policy]))
+    end
+    return (; sim_params=merge(sim_params, sim), recon_params=merge(recon_params, rec))
 end
 
 function merge_cli_preferences!(opts, prefs)
@@ -174,6 +199,8 @@ function parse_cli_outputs!(opts, outputs)
 end
 
 function parse_cli_args(args, opts=CLIOptions())
+    configuration_file = nothing
+    sim_overrides, recon_overrides = Dict{String,Any}(), Dict{Symbol,Any}()
     i = 1
     while i <= length(args)
         name, value = split_cli_option(args[i])
@@ -187,14 +214,30 @@ function parse_cli_args(args, opts=CLIOptions())
             opts.backend, i = take_cli_value(args, i, name, value)
         elseif name == "--sim-param"
             param, i = take_cli_value(args, i, name, value)
-            parse_cli_param!(opts.sim_params, param)
+            parse_cli_param!(sim_overrides, param)
         elseif name == "--recon-param"
             param, i = take_cli_value(args, i, name, value)
-            parse_cli_param!(opts.recon_params, param)
+            parse_cli_param!(recon_overrides, param)
+        elseif name == "--config"
+            configuration_file, i = take_cli_value(args, i, name, value)
+        elseif name == "--browser"
+            opts.browser = isnothing(value) ? true : parse(Bool, value)
+            i += 1
+        elseif name == "--host"
+            opts.host, i = take_cli_value(args, i, name, value)
+        elseif name == "--port"
+            port, i = take_cli_value(args, i, name, value)
+            opts.port = parse(Int, port)
         else
             error("Unknown argument: $(args[i])")
         end
     end
+    if !isnothing(configuration_file)
+        params = read_configuration(configuration_file; sim_params=opts.sim_params, recon_params=opts.recon_params)
+        opts.sim_params, opts.recon_params = params.sim_params, params.recon_params
+    end
+    merge!(opts.sim_params, sim_overrides)
+    merge!(opts.recon_params, recon_overrides)
     return opts
 end
 
@@ -213,10 +256,7 @@ function load_cli_backend!(opts)
 end
 
 function cli_inputs(opts)
-    sys = setup_scanner()
-    if !isnothing(opts.scanner)
-        @warn "Scanner file input is accepted but ignored for now" file=opts.scanner
-    end
+    sys = isnothing(opts.scanner) ? setup_scanner() : read_scanner(opts.scanner)
     seq = isnothing(opts.sequence) ? setup_sequence(sys) : read_seq(opts.sequence)
     obj = isnothing(opts.phantom) ? setup_phantom() : load_cli_phantom(opts.phantom)
     return sys, seq, obj
@@ -254,16 +294,7 @@ function save_cli_raw(raw, filename)
 end
 
 function reconstruct_cli(raw, rec_params)
-    raw = _imaging_raw_data(raw)
-    acq_data = AcquisitionData(raw)
-    acq_data.traj[1].circular = false
-    scale = maximum(2 * abs.(acq_data.traj[1].nodes[:]))
-    acq_data.traj[1].nodes = acq_data.traj[1].nodes[1:2, :] ./ (iszero(scale) ? one(scale) : scale)
-    Nx, Ny = raw.params["reconSize"][1:2]
-    rec_params[:reconSize] = (Nx, Ny)
-    rec_params[:densityWeighting] = true
-    rec = reconstruction(acq_data, rec_params)
-    return reshape(rec.data, Nx, Ny, :)
+    return reconstruct_with_labels(raw; rec_params)
 end
 
 function save_cli_recon(image, rec_params, filename)
@@ -293,7 +324,8 @@ end
 function run_cli(opts::CLIOptions)
     sys, seq, obj = cli_inputs(opts)
     if isnothing(opts.sim_output) && isnothing(opts.recon_output)
-        w = KomaUI(; sys, seq, obj, sim=opts.sim_params, rec=opts.recon_params, verbose=false, return_window=true)
+        w = KomaUI(; sys, seq, obj, sim=opts.sim_params, rec=opts.recon_params,
+            browser=opts.browser, host=opts.host, port=opts.port, verbose=false, return_window=true)
         keep_app_open(w)
         return nothing
     end

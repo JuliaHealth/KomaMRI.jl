@@ -9,11 +9,7 @@
 # time step: you can either use a larger ``\Delta t`` for speed, or keep the same
 # ``\Delta t`` and reduce time-discretization error.
 
-# ```@raw html
-# <p align="center">
-#   <img width="100%" src="../assets/magnus-methods.svg">
-# </p>
-# ```
+# ![](../assets/magnus-methods.svg)
 
 # KomaMRI provides four recommended Magnus variants:
 
@@ -198,11 +194,7 @@ end #hide
 # \boldsymbol{\omega}(t) = -\gamma \boldsymbol{B}(t) \:.
 # ```
 
-# ```@raw html
-# <p align="center">
-#   <img width="58%" src="../assets/magnus-effective-field.png">
-# </p>
-# ```
+# ![](../assets/magnus-effective-field.png){style="width:58%"}
 
 # Here ``\boldsymbol{B}(t)`` combines the transverse RF components
 # ``B_{1,x}`` and ``B_{1,y}`` with the longitudinal frequency-offset term

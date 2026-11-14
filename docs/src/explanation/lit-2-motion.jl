@@ -151,7 +151,7 @@ p = plot_phantom_map(obj, :T1; height=440); #hide
 
 obj.motion = translate(-5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), AllSpins());
 
-# Let’s plot this phantom and see how it moves. The `time_samples` argument specifies the number of time samples to be plotted.
+# Let’s plot this phantom and see how it moves. `time_samples` adds an evenly spaced time grid; native motion timepoints are always retained.
 # You can use the bottom slider to scroll through time and check its exact position at each moment: 
 
 p1 = plot_phantom_map(obj, :T1; time_samples=11, height=440)

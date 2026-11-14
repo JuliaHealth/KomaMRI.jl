@@ -23,10 +23,12 @@ function run_spin_precession!(
     ϕ = prealloc.rotation_norm
     Mxy = prealloc.Maux_xy
     ΔBz = prealloc.ΔBz
+    spin_reset = prealloc.spin_reset
 
     fill!(ϕ, zero(T))
     block_time = zero(T)
     sample = 1
+    advance_spin_reset!(spin_reset, firstindex(seq.t))
     x, y, z = spin_coordinates!(
         prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[1],
     )
@@ -38,9 +40,10 @@ function run_spin_precession!(
         @. Bz_1 = x * seq.Gx[i + 1] + y * seq.Gy[i + 1] + z * seq.Gz[i + 1] + ΔBz
         @. ϕ += (Bz_0 + Bz_1) * T(-π * γ) * seq.Δt[i]
         block_time += seq.Δt[i]
+        advance_spin_reset!(spin_reset, i + 1)
         if seq.ADC[i + 1]
             @. Mxy = exp(-block_time / p.T2) * M.xy * cis(ϕ)
-            outflow_spin_reset!(Mxy, seq.t[i + 1], p.motion)
+            outflow_spin_reset!(Mxy, spin_reset)
             update_sensitivities!(prealloc.sens, sys.receiver, (x, y, z), p.motion)
             acquire_signal!(
                 @view(sig[sample, :]), Mxy, prealloc.sens, (x, y, z),
@@ -51,7 +54,7 @@ function run_spin_precession!(
     end
     @. M.xy = M.xy * exp(-block_time / p.T2) * cis(ϕ)
     @. M.z = M.z * exp(-block_time / p.T1) + p.ρ * (T(1) - exp(-block_time / p.T1))
-    outflow_spin_reset!(M,  seq.t', p.motion; replace_by=p.ρ)
+    outflow_spin_reset!(M, spin_reset; replace_by=p.ρ)
     return nothing
 end
 
@@ -69,11 +72,14 @@ function run_spin_excitation!(
     T = eltype(p.ρ)
     B_to_ω = T(-2π * γ)
     ΔBz = prealloc.ΔBz
+    spin_reset = prealloc.spin_reset
     (; ωxy_0, ωz_0, ωz_1, θxy, θz, rotation_norm, α, β, Maux_xy, Maux_z) = prealloc
     @. ωxy_0 *= B_to_ω
     @. ωz_0  *= B_to_ω
     #Initialize
     sample = 1
+    advance_spin_reset!(spin_reset, firstindex(seq.t))
+    outflow_spin_reset!(M, spin_reset; replace_by=p.ρ)
     # Rotating frame -> RF frame
     ψ_start = seq.ψ[1]
     if !iszero(ψ_start)
@@ -98,8 +104,8 @@ function run_spin_excitation!(
         #Relaxation
         @. M.xy = M.xy * exp(-seq.Δt[i] / p.T2)
         @. M.z = M.z * exp(-seq.Δt[i] / p.T1) + p.ρ * (T(1) - exp(-seq.Δt[i] / p.T1))
-        #Reset Spin-State (Magnetization). Only for FlowPath
-        outflow_spin_reset_at!(M, seq.t, i + 1, p.motion; replace_by=p.ρ)
+        advance_spin_reset!(spin_reset, i + 1)
+        outflow_spin_reset!(M, spin_reset; replace_by=p.ρ)
         #Acquire signal
         if seq.ADC[i + 1] # ADC at the end of the time step
             update_sensitivities!(prealloc.sens, sys.receiver, (x, y, z), p.motion)
@@ -137,11 +143,14 @@ function run_spin_excitation!(
     T = eltype(p.ρ)
     B_to_ω = T(-2π * γ)
     ΔBz = prealloc.ΔBz
+    spin_reset = prealloc.spin_reset
     (; ωxy_0, ωz_0, ωxy_1, ωz_1, θxy, θz, rotation_norm, α, β, Maux_xy, Maux_z) = prealloc
     @. ωxy_0 *= B_to_ω
     @. ωz_0  *= B_to_ω
     #Initialize
     sample = 1
+    advance_spin_reset!(spin_reset, firstindex(seq.t))
+    outflow_spin_reset!(M, spin_reset; replace_by=p.ρ)
     # Rotating frame -> RF frame
     ψ_start = seq.ψ[1]
     if !iszero(ψ_start)
@@ -170,8 +179,8 @@ function run_spin_excitation!(
         #Relaxation
         @. M.xy = M.xy * exp(-seq.Δt[i] / p.T2)
         @. M.z = M.z * exp(-seq.Δt[i] / p.T1) + p.ρ * (T(1) - exp(-seq.Δt[i] / p.T1))
-        #Reset Spin-State (Magnetization). Only for FlowPath
-        outflow_spin_reset_at!(M, seq.t, i + 1, p.motion; replace_by=p.ρ)
+        advance_spin_reset!(spin_reset, i + 1)
+        outflow_spin_reset!(M, spin_reset; replace_by=p.ρ)
         #Acquire signal
         if seq.ADC[i + 1] # ADC at the end of the time step
             update_sensitivities!(prealloc.sens, sys.receiver, (x, y, z), p.motion)

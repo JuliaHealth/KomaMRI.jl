@@ -20,7 +20,7 @@ Gx = 1 / (γ * sys.limits.ADC_Δt * FOV) #hide
 Gz = 20e-3 #hide
 Trf = 2e-3 #hide
 slice_positions = [0.0, 4e-3]; #hide
-obj = brain_phantom3D(); #hide
+obj = brain_phantom3D(; ss=2); #hide
 obj.Δw .= 0; #hide
 phase_encode(lin) = Grad((lin - (Ny - 1) / 2) * Gx * sys.limits.ADC_Δt / Tadc, Tadc) #hide
 rf = [PulseDesigner.RF_sinc(sys.limits.B1, Trf, sys; G=[0, 0, Gz], Δf=γ * Gz * z) for z in slice_positions]; #hide
@@ -96,6 +96,15 @@ p2 = plot_image(image_display[:, :, 2]; height=360, title="Slice 2", zmin=0, zma
 foreach(p -> p.data[1].showscale = false, (p1, p2)); #hide
 #md [p1 p2] #hide
 #jl display([p1 p2]);
+
+# ## Exploring the reconstructed slice stack
+#
+# Pass the reconstructed volume to `plot_image` to browse linked image-coordinate
+# planes. Here `z` indexes the two acquired slices; it is not an anatomical axis.
+
+volume = reshape(rec, Nx, Ny, Nslices)
+pstack = plot_image(volume; height=560, spacing=(FOV / Nx, FOV / Ny, diff(slice_positions)[1]))
+#jl display(pstack);
 
 # **KomaMRI tries to pass every supported label/flag through to the MRD raw data.
 # This path is still new, so let us know if you find a case that is not mapped

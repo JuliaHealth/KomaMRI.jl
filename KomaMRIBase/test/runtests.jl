@@ -92,6 +92,19 @@ using TestItems, TestItemRunner
         @test gradient_seqd.Gx ≈ [0.0, 1e-3, 1e-3, 0.0, 2e-3, 2e-3, 0.0]
     end
 
+    @testset "RF-center timing in k-space integration" begin
+        sys = Scanner()
+        seq = PulseDesigner.build_sinc_pulse(π / 2; sys, duration=3e-3,
+            slice_thickness=5e-3, use=Excitation())
+        @addblock seq += PulseDesigner.EPI(0.24, 9, sys)
+        rule = MaxStepSizeRule(Inf, Inf; preserve_samples=(:gradients,))
+        _, k_adc = get_kspace(seq; sampling_rule=rule)
+
+        # The slice rephaser cancels M0z at every EPI sample, even with a coarse RF grid.
+        # Float64 cancellation of the ~10³ m⁻¹ slice-gradient areas leaves ~10⁻¹³ m⁻¹ roundoff.
+        @test maximum(abs, k_adc[:, 3]) ≈ 0 atol=1e-13
+    end
+
     @testset "Init" begin
         sys = Scanner()
         B1 = sys.limits.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
@@ -2184,6 +2197,17 @@ end
         seqd_t = [t_start, t_end]
         KomaMRIBase.add_key_time_points!(seqd_t, ml)
         @test unique(seqd_t) ≈ [t_start; t_end; period_times_np; reset_times_np]
+
+        # MIN_RISE_TIME must stay above one Float64 ulp at the end of the run, or the
+        # offsets straddling each period boundary collapse onto the boundary itself.
+        long_pth = path(dx, dy, dz, Periodic(1.0, 1.0), AllSpins())
+        seqd_t = [0.0, 250.0]
+        KomaMRIBase.add_key_time_points!(seqd_t, long_pth)
+        sort!(unique!(seqd_t))
+        for boundary in (1.0, 100.0, 200.0)
+            i = searchsortedlast(seqd_t, boundary)
+            @test seqd_t[i] < boundary < seqd_t[i + 1]
+        end
     end
 end
 
@@ -2249,6 +2273,17 @@ end
         obj3.motion = translate(5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), SpinRange(1:length(obj3)))
         @test obj1[rng] == obj3[rng]
         @test obj1[rng].motion == obj3.motion[rng]
+    end
+    @testset "Motion subset spin identities" begin
+        displacement = hcat(zeros(4), [2.0, 4.0, 6.0, 8.0])
+        motion = path(displacement, zero(displacement), zero(displacement), TimeRange(0.0, 1.0), SpinRange(2:2:8))
+        obj = Phantom(x=collect(1.0:8.0), motion=motion)
+        # At the final time, even-numbered spins have moved by their original spin number.
+        for selection in (1:8, 3:7, 1:2:7, 2:2:8, 8:8)
+            subset = @view obj[selection]
+            x, _, _ = get_spin_coords(subset.motion, subset.x, subset.y, subset.z, 1.0)
+            @test vec(x) == [iseven(i) ? 2i : i for i in selection]
+        end
     end
     @testset "Addition" begin
         obj1 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ)

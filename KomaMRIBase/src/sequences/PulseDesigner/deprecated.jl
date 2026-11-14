@@ -108,12 +108,12 @@ function EPI(FOV::Real, N::Integer, sys::Scanner)
 	Nx = Ny = N #Square acquisition
 	Δx = FOV/(Nx-1)
 	Ta = Δt*(Nx-1) #4-8 us
-    Δτ = Ta/(Ny-1)
+    Δτ = ceil_to_raster(Ta/(Ny-1), sys.limits.GR_Δt)
 	Ga = 1/(γ*Δt*FOV)
-	ζ = Ga / sys.limits.Smax
+	ζ = ceil_to_raster(Ga / sys.limits.Smax, sys.limits.GR_Δt)
 	Ga ≥ sys.limits.Gmax ? error("Ga=$(Ga*1e3) mT/m exceeds Gmax=$(Gmax*1e3) mT/m, increase Δt to at least Δt_min="
 	*string(round(1/(γ*Gmax*FOV),digits=2))*" us.") : 0
-	ϵ1 = Δτ/(Δτ+ζ)
+	ϵ1 = Δt/(Δτ+ζ)
 	#EPI base
 	GR = zeros(Grad, 3, length(0:2*Ny-2))
 	GR.x .= [mod(i,2)==0 ? Grad(Ga*(-1)^(i/2),Ta,ζ) : Grad(0.,Δτ,ζ) for i=0:2*Ny-2]
@@ -134,7 +134,7 @@ function EPI(FOV::Real, N::Integer, sys::Scanner)
 	DEPHASE = Sequence(1/2*[Grad((-1)^N*Ga, Ta, ζ); ϵ2*Grad(-Ga, Ta, ζ); Grad(0.,0.);;]) #for even N
 	seq = PHASE+EPI+DEPHASE
 	#Saving parameters
-	seq.DEF = Dict("Nx"=>Nx,"Ny"=>Ny,"Nz"=>1,"Name"=>"epi")
+	seq.DEF = Dict("Nx"=>Nx,"Ny"=>Ny,"Nz"=>1,"Name"=>"epi","FOV"=>[FOV, FOV, 0])
 	return seq
 end
 

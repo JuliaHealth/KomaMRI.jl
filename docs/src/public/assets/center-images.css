@@ -1,8 +1,13 @@
 .vp-doc>div>img:not(a img),
-.vp-doc>div>p>img:only-child {
+.vp-doc>div>p>img:only-child,
+.vp-doc>div>p:has(>img:only-child) {
   display: block;
   margin-left: auto;
   margin-right: auto;
+}
+
+.vp-doc>div>p[style*="width:"]>img:only-child {
+  width: 100%;
 }
 
 .badge-row {

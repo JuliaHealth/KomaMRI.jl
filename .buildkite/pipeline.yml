@@ -1,6 +1,6 @@
 steps:
   - label: ":pipeline: Upload NoMotion Tests"
-    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    if: '!build.pull_request.draft && (build.pull_request.labels includes "run-gpu-ci" || build.branch == "master")'
     plugins:
       - sparse-checkout#v1.8.0:
           paths:
@@ -12,7 +12,7 @@ steps:
       queue: upload
 
   - label: ":pipeline: Upload Motion Tests"
-    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    if: '!build.pull_request.draft && (build.pull_request.labels includes "run-gpu-ci" || build.branch == "master")'
     plugins:
       - sparse-checkout#v1.8.0:
           paths:
@@ -25,12 +25,14 @@ steps:
 
   - label: ":pipeline: Launch Benchmarks"
     if: |
-      build.branch == "master" ||
+      !build.pull_request.draft && (
+        build.branch == "master" ||
         (
           build.pull_request.labels includes "run-gpu-ci" &&
           !build.pull_request.repository.fork &&
           build.branch !~ /^dependabot\//
         )
+      )
     plugins:
       - sparse-checkout#v1.8.0:
           paths:

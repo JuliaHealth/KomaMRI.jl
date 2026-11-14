@@ -1,4 +1,4 @@
-using Documenter, DocumenterVitepress, Literate, KomaMRI, PlutoSliderServer
+using Documenter, DocumenterVitepress, Literate, KomaMRI, PlutoSliderServer, TOML
 
 # Setup for Literate and Pluto
 repo_base = "JuliaHealth/KomaMRI.jl"
@@ -8,6 +8,7 @@ plu_pattern = "pluto-"
 gen_pattern = "gen-"
 include("utils.jl")
 include("EmbedPlotlyBaseLiterate.jl")
+include("paper_links.jl")
 
 # Documentation folders KomaMRI.jl/docs/
 doc_tutorial       = joinpath(dirname(@__DIR__), "docs/src/tutorial")
@@ -51,7 +52,7 @@ append!(explanation_list, lit_explanation_list)
 append!(reference_list, lit_reference_list)
 
 # Generate documentation
-makedocs(;
+withenv(() -> makedocs(;
     modules=[KomaMRI, KomaMRIBase, KomaMRICore, KomaMRIFiles, KomaMRIPlots],
     sitename="KomaMRI.jl",
     authors="Carlos Castillo Passi and collaborators",
@@ -73,7 +74,12 @@ makedocs(;
         assets=["public/assets/hide-documenter-example-output.css","public/assets/center-images.css"],
     ),
     clean=false,
-)
+), "NODE_OPTIONS" => get(ENV, "NODE_OPTIONS", "--max-old-space-size=8192"))
+
+paper_links = TOML.parsefile(joinpath(@__DIR__, "paper-links.toml"))
+for (i, _) in enumerate(readlines(joinpath(@__DIR__, "build", "bases.txt")))
+    write_paper_redirects!(joinpath(@__DIR__, "build", string(i)), paper_links)
+end
 
 deploy_preview = "push_preview" in ARGS
 if get(ENV, "GITHUB_EVENT_NAME", "") == "push" || deploy_preview

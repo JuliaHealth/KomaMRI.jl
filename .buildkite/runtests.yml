@@ -1,5 +1,6 @@
 steps:
   - group: ":julia: ($TEST_GROUP) Tests"
+    if: '!build.pull_request.draft'
     steps:
       - label: "AMDGPU - Julia {{matrix.version}} - Test"
         matrix:
@@ -8,6 +9,10 @@ steps:
               - "1.10"
               - "1"
         plugins:
+          - sparse-checkout#v1.8.0:
+              paths:
+                - "/*"
+              no_cone: true
           - JuliaCI/julia#v1:
               version: "{{matrix.version}}"
           - JuliaCI/julia-coverage:
@@ -52,6 +57,10 @@ steps:
               - "1.10"
               - "1"
         plugins:
+          - sparse-checkout#v1.8.0:
+              paths:
+                - "/*"
+              no_cone: true
           - JuliaCI/julia#v1:
               version: "{{matrix.version}}"
           - JuliaCI/julia-coverage:
@@ -95,6 +104,10 @@ steps:
               - "1.10"
               - "1"
         plugins:
+          - sparse-checkout#v1.8.0:
+              paths:
+                - "/*"
+              no_cone: true
           - JuliaCI/julia#v1:
               version: "{{matrix.version}}"
           - JuliaCI/julia-coverage:
@@ -140,6 +153,10 @@ steps:
               - "1.10"
               - "1"
         plugins:
+          - sparse-checkout#v1.8.0:
+              paths:
+                - "/*"
+              no_cone: true
           - JuliaCI/julia#v1:
               version: "{{matrix.version}}"
         env:

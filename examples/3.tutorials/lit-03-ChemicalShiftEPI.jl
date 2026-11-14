@@ -37,6 +37,8 @@ end #hide
 
 seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/5.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq")
 seq = @suppress read_seq(seq_file)
+seq.DEF["Nx"], seq.DEF["Ny"], seq.DEF["Nz"] = 100, 100, 1 #hide
+seq.DEF["FOV"] = [0.23, 0.23, 1e-3] #hide
 p3 = plot_seq(seq; range=[0 40], slider=true, height=300)
 #jl display(p3);
 

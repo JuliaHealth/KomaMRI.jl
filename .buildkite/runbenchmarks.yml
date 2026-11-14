@@ -1,8 +1,13 @@
 steps:
   - group: ":racehorse: Benchmarks"
+    if: '!build.pull_request.draft'
     steps:
       - label: "AMDGPU - Julia 1 - Benchmark"
         plugins:
+          - sparse-checkout#v1.8.0:
+              paths:
+                - "/*"
+              no_cone: true
           - JuliaCI/julia#v1:
               version: "1"
         command: |
@@ -30,6 +35,10 @@ steps:
 
       - label: "CUDA - Julia 1 - Benchmark"
         plugins:
+          - sparse-checkout#v1.8.0:
+              paths:
+                - "/*"
+              no_cone: true
           - JuliaCI/julia#v1:
               version: "1"
         command: |
@@ -58,6 +67,10 @@ steps:
 
       - label: "oneAPI - Julia 1 - Benchmark"
         plugins:
+          - sparse-checkout#v1.8.0:
+              paths:
+                - "/*"
+              no_cone: true
           - JuliaCI/julia#v1:
               version: "1"
         command: |
@@ -86,6 +99,10 @@ steps:
 
       - label: "Metal - Julia 1 - Benchmark"
         plugins:
+          - sparse-checkout#v1.8.0:
+              paths:
+                - "/*"
+              no_cone: true
           - JuliaCI/julia#v1:
               version: "1"
         command: |
@@ -114,6 +131,10 @@ steps:
 
       - label: "Combine benchmarks"
         plugins:
+          - sparse-checkout#v1.8.0:
+              paths:
+                - "/*"
+              no_cone: true
           - JuliaCI/julia#v1:
               version: "1"
         command: |

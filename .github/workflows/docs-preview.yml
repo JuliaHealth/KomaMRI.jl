@@ -50,6 +50,11 @@ jobs:
               return;
             }
 
+            if (data.draft) {
+              core.info('Pull request is a draft.');
+              return;
+            }
+
             if (data.head.repo.full_name !== `${context.repo.owner}/${context.repo.repo}`) {
               core.info('Pull request is not from this repository.');
               return;

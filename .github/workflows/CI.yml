@@ -1,6 +1,7 @@
 name: CI
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - master
   push:
@@ -18,7 +19,7 @@ env:
 
 jobs:
   ci:
-    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    if: ${{ !github.event.pull_request.draft && !contains(github.event.head_commit.message, '[skip ci]') }}
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
@@ -154,7 +155,7 @@ jobs:
           flags: files
           token: ${{ secrets.CODECOV_TOKEN }} # required
   docs:
-    if: '!cancelled()'
+    if: ${{ !cancelled() && !github.event.pull_request.draft }}
     name: Documentation
     runs-on: ubuntu-latest
     concurrency:
@@ -189,7 +190,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
   Skip:
-    if: contains(github.event.head_commit.message, '[skip ci]')
+    if: ${{ !github.event.pull_request.draft && contains(github.event.head_commit.message, '[skip ci]') }}
     runs-on: ubuntu-latest
     steps:
       - name: Skip CI 🚫
