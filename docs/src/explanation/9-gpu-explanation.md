@@ -25,14 +25,14 @@ x = rand(100)
 x |> f32 |> gpu # Float32 CuArray
 ```
 
-To change the precision level used for the entire simulation, the `sim_params["precision"]` parameter can be set to either `f32` or `f64` (Note that for most GPUs, Float32 operations are considerably faster compared with Float64). In addition, the `sim_params["gpu"]` option can be set to true or false to enable / disable the gpu functionality (if set to true, the backend package will still need to be loaded beforehand):
+To change the precision level used for the entire simulation, the `sim_params["precision"]` parameter can be set to either `"f32"` or `"f64"` (Note that for most GPUs, Float32 operations are considerably faster compared with Float64). In addition, the `sim_params["gpu"]` option can be set to true or false to enable / disable the gpu functionality (if set to true, the backend package will still need to be loaded beforehand):
 
 Two other simulation parameters, `gpu_groupsize_precession` and `gpu_groupsize_excitation` are exposed to allow adjusting the number of threads in each threadgroup within the `run_spin_precession!` and `run_spin_excitation!` gpu kernels. By default, they are both 256, however, on some devices other values may result in faster performance. The gpu groupsize must be a multiple of 32 between 32 and no higher than 1024, otherwise the simulation will throw an error.
 
 ```julia
 using KomaMRI
 using CUDA
-sys = Scanner
+sys = Scanner()
 obj = brain_phantom2D()
 seq = PulseDesigner.EPI_example()
 
@@ -56,7 +56,7 @@ KomaMRI has several simulation methods, all of which can run on the GPU:
 
 * `BlochSimple`: [BlochSimple.jl](https://github.com/JuliaHealth/KomaMRI.jl/blob/master/KomaMRICore/src/simulation/SimMethods/BlochSimple/BlochSimple.jl)
 * `BlochDict`: [BlochDict.jl](https://github.com/JuliaHealth/KomaMRI.jl/blob/master/KomaMRICore/src/simulation/SimMethods/BlochDict/BlochDict.jl)
-* `Bloch`: [BlochCPU.jl](https://github.com/JuliaHealth/KomaMRI.jl/blob/master/KomaMRICore/src/simulation/SimMethods/Bloch/BlochCPU.jl) / [BlochGPU.jl](https://github.com/JuliaHealth/KomaMRI.jl/blob/master/KomaMRICore/src/simulation/SimMethods/Bloch/BlochGPU.jl)
+* `Bloch`: [BlochCPU.jl](https://github.com/JuliaHealth/KomaMRI.jl/blob/master/KomaMRICore/src/simulation/SimMethods/Bloch/cpu/BlochCPU.jl) / [BlochGPU.jl](https://github.com/JuliaHealth/KomaMRI.jl/blob/master/KomaMRICore/src/simulation/SimMethods/Bloch/gpu/BlochGPU.jl)
 * `BlochMagnus1`, `BlochMagnus2`, and `BlochMagnus4`: [BlochMagnusCPU.jl](https://github.com/JuliaHealth/KomaMRI.jl/blob/master/KomaMRICore/src/simulation/SimMethods/BlochMagnus/cpu/BlochMagnusCPU.jl) / [BlochMagnusGPU.jl](https://github.com/JuliaHealth/KomaMRI.jl/blob/master/KomaMRICore/src/simulation/SimMethods/BlochMagnus/gpu/BlochMagnusGPU.jl)
 
 `BlochSimple` uses array-based methods which are simpler to understand compared with the more optimized `Bloch` implementation.

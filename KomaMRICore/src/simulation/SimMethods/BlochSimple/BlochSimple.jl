@@ -6,6 +6,22 @@ struct BlochSimple <: SimulationMethod end
 
 export BlochSimple
 
+struct BlochSimplePrealloc{R} <: PreallocResult
+    spin_reset::R
+end
+
+Base.view(prealloc::BlochSimplePrealloc, i::UnitRange) =
+    BlochSimplePrealloc(view(prealloc.spin_reset, i))
+
+function prealloc(
+    ::BlochSimple, backend::KA.Backend, obj, _M,
+    max_block_length, _max_adc_samples, _groupsize, _sys,
+)
+    return BlochSimplePrealloc(
+        prealloc_spin_reset(obj.motion, backend, length(obj), max_block_length),
+    )
+end
+
 function acquire_block_signal!(sig, Mxy, receiver, ::NoMotion, positions, _adc)
     acquire_signal!(sig, Mxy, receiver, positions)
     return nothing
@@ -73,8 +89,15 @@ function run_spin_precession!(
     M.xy .= Mxy[:, end]
     M.z  .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
     #Reset Spin-State (Magnetization). Only for FlowPath
-    outflow_spin_reset!(Mxy, seq.t[2:end]', p.motion)
-    outflow_spin_reset!(M, seq.t[2:end]', p.motion; replace_by=p.ρ)
+    spin_reset = spin_reset_state(prealloc, p.motion, seq.t, backend, length(p))
+    for column in axes(Mxy, 2)
+        outflow_spin_reset_at!(
+            @view(Mxy[:, column]), spin_reset, column + 1, seq.t, p.motion,
+        )
+    end
+    outflow_spin_reset_at!(
+        M, spin_reset, lastindex(seq.t), seq.t, p.motion; replace_by=p.ρ,
+    )
     #Acquired signal
     if !isempty(sig)
         adc = findall(cpu(seq.ADC[2:end]))
@@ -114,6 +137,9 @@ function run_spin_excitation!(
 )
     T = eltype(p.ρ)
     sample = 1
+    spin_reset = spin_reset_state(prealloc, p.motion, seq.t, backend, length(p))
+    advance_spin_reset!(spin_reset, firstindex(seq.t))
+    outflow_spin_reset!(M, spin_reset; replace_by=p.ρ)
     # Rotating frame -> RF frame
     ψ_start = @view seq.ψ[1:1]
     @. M.xy = M.xy * cis(-ψ_start)
@@ -140,7 +166,9 @@ function run_spin_excitation!(
         @. M.xy = M.xy * exp(-s.Δt / p.T2)
         @. M.z  = M.z * exp(-s.Δt / p.T1) + p.ρ * (1 - exp(-s.Δt / p.T1))
         #Reset Spin-State (Magnetization). Only for FlowPath
-        outflow_spin_reset!(M, s.tnew, p.motion; replace_by=p.ρ)
+        outflow_spin_reset_at!(
+            M, spin_reset, i + 1, seq.t, p.motion; replace_by=p.ρ,
+        )
         #Acquire signal
         # TODO: use sim_method and sys to modify sig 
         if s.ADC # ADC at the end of the time step

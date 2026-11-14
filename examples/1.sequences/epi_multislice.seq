@@ -7,6 +7,10 @@ minor 4
 revision 0
 
 [DEFINITIONS]
+Nx 100
+Ny 100
+Nz 1
+FOV 0.23 0.23 0.003333333333333333
 AdcRasterTime 1e-07 
 BlockDurationRaster 1e-05 
 EPI 1 
@@ -16,7 +20,7 @@ RadiofrequencyRasterTime 1e-06
 # Format of blocks:
 # NUM DUR RF  GX  GY  GZ  ADC  EXT
 [BLOCKS]
-  1 318   1   0   0   1  0  0
+  1 318   1   0   0   1  0  1
   2  80   0   2   3   4  0  0
   3  80   0   5   0   0  1  0
   4   6   0   0   6   0  0  0
@@ -219,7 +223,7 @@ RadiofrequencyRasterTime 1e-06
 201  80   0   7   0   0  1  0
 202  80   0   8   9   0  0  0
 203 2000   0   0   0   0  0  0
-204 318   2   0   0   1  0  0
+204 318   2   0   0   1  0  2
 205  80   0   2   3   4  0  0
 206  80   0   5   0   0  1  0
 207   6   0   0   6   0  0  0
@@ -422,7 +426,7 @@ RadiofrequencyRasterTime 1e-06
 404  80   0   7   0   0  1  0
 405  80   0   8   9   0  0  0
 406 2000   0   0   0   0  0  0
-407 318   3   0   0   1  0  0
+407 318   3   0   0   1  0  3
 408  80   0   2   3   4  0  0
 409  80   0   5   0   0  1  0
 410   6   0   0   6   0  0  0
@@ -625,6 +629,17 @@ RadiofrequencyRasterTime 1e-06
 607  80   0   7   0   0  1  0
 608  80   0   8   9   0  0  0
 609 2000   0   0   0   0  0  0
+
+[EXTENSIONS]
+1 1 1 0
+2 1 2 0
+3 1 3 0
+
+# id set labelstring
+extension LABELSET 1
+1 0 SLC
+2 1 SLC
+3 2 SLC
 
 # Format of RF events:
 # id amplitude mag_id phase_id time_shape_id delay freq phase
@@ -3681,4 +3696,4 @@ num_samples 3000
 # It can be reproduced/verified with md5sum if the file trimmed to the position right above [SIGNATURE]
 # The new line character preceding [SIGNATURE] BELONGS to the signature (and needs to be sripped away for recalculating/verification)
 Type md5
-Hash 67ebeffe6afdf0c393834101c14f3990
+Hash 77809a10139de3a6c9041373b7ae7f74

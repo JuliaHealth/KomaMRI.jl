@@ -238,7 +238,7 @@ blood = Phantom(
     ρ =PD.*ones(length(x[bl])),
     T1=T1.*ones(length(x[bl])),
     T2=T2.*ones(length(x[bl])),
-    motion=FlowPath(dx, dy, dz, spin_reset, Periodic(L/v, 1.0-1e-6))
+    motion=flowpath(dx, dy, dz, spin_reset, Periodic(L/v, 1.0-1e-6))
 )
 ```
 

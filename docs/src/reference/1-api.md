@@ -1,8 +1,6 @@
 # API Overview
 
-```@raw html
-<p align="center"><img width="100%" src="../assets/koma-schema-subdirs.svg"/></p>
-```
+![](../assets/koma-schema-subdirs.svg)
 
 KomaMRI is divided into the following sub-packages:
 - [KomaMRIBase](2-koma-base.md): Custom types and functions
