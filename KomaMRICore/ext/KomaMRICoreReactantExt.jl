@@ -120,6 +120,8 @@ function KomaMRICore.run_sim_time_iter!(
     L += size(sig, 1) == L - 1
     prealloc_result = KomaMRICore.prealloc(sim_method, backend, obj, Xt, L,
         max_adc_samples, min(precession_groupsize, excitation_groupsize), sys)
+    KomaMRICore.spin_reset_state(prealloc_result) isa KomaMRICore.NoSpinReset ||
+        error("Compiled Bloch simulation does not support FlowPath spin resets")
     # Blocks as columns, padded with zero-duration steps
     traced(x) = Reactant.promote_to(Reactant.TracedRArray, x)
     idx = [r[min(i, end)] for i in 1:L, r in parts]

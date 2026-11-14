@@ -90,6 +90,7 @@ function epi_sequence(R; matrix_size=120, FOV=0.23, TE=50e-3, dwell=4e-6, sys=Sc
     @addblock seq += excitation #hide
     @addblock seq += Delay(pre_readout_delay) #hide
     @addblock seq += train #hide
+    merge!(seq.DEF, Dict("Nx"=>matrix_size, "Ny"=>matrix_size, "Nz"=>1, "FOV"=>[FOV, FOV, 0])) #hide
     return seq #hide
 end #hide
 #hide

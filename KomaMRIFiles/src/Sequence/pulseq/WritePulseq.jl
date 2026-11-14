@@ -877,16 +877,16 @@ function emit_extension_spec!(io, spec_id, spec::Extension)
     write(io, "\n")
 end
 
-function prepare_pulseq_write(seq, raster=DEFAULT_RASTER; preserve_block_durations=false, sys=nothing)
+function prepare_pulseq_write(seq, raster=DEFAULT_RASTER; preserve_block_durations=false, sys=nothing, verbose=true)
     check_sys = isnothing(sys) ? KomaMRIBase._sequence_scanner_from_def(seq.DEF) : sys
     return prepare_pulseq_write(
         seq.GR, seq.RF, seq.ADC, seq.DUR, seq.EXT, seq.DEF, raster, check_sys;
-        preserve_block_durations,
+        preserve_block_durations, verbose,
     )
 end
 
 function prepare_pulseq_write(
-    gr, rf, adc, block_durations, ext, def, raster, sys; preserve_block_durations=false,
+    gr, rf, adc, block_durations, ext, def, raster, sys; preserve_block_durations=false, verbose=true,
 )
     warn_count = Threads.Atomic{Int}(0)
     rf_type = eltype(rf)
@@ -920,6 +920,7 @@ function prepare_pulseq_write(
                 thread_rf_caches[Threads.threadid()],
                 thread_grad_caches[Threads.threadid()],
                 thread_adc_caches[Threads.threadid()],
+                verbose,
             )
     end
     canonicalize_quantized!(qrf, canonical_rfs)
@@ -946,19 +947,20 @@ function quantize_block(
     rf_cache,
     grad_cache,
     adc_cache,
+    verbose,
 )
     rf_i = rf[1, bi]
     qrf = get_quantized!(rf_cache, rf_i) do
         is_on(rf_i) || return rf_i
         qrfi = copy(rf_i)
-        quantize_rf!(qrfi, raster, bi, warn_count)
+        quantize_rf!(qrfi, raster, bi, warn_count; verbose)
     end
     qgr = ntuple(Val(3)) do gi
         grad_i = gr[gi, bi]
         get_quantized!(grad_cache, grad_i) do
             is_on(grad_i) || return grad_i
             qgrad_i = copy(grad_i)
-            quantize_grad!(qgrad_i, raster, bi, axis_names[gi], warn_count)
+            quantize_grad!(qgrad_i, raster, bi, axis_names[gi], warn_count; verbose)
         end
     end
 
@@ -966,7 +968,7 @@ function quantize_block(
     qadc = get_quantized!(adc_cache, adc_i) do
         is_ADC_on(adc_i) || return adc_i
         qadci = copy(adc_i)
-        quantize_adc!(qadci, raster, bi, warn_count)
+        quantize_adc!(qadci, raster, bi, warn_count; verbose)
     end
 
     key = :BlockDurationRaster
@@ -979,16 +981,16 @@ function quantize_block(
         maximum(dur, ext_vec; init=0.0),
     )
     block_duration = preserve_block_durations ? block_durations[bi] : max(block_durations[bi], max_event_duration)
-    warn_ctx = (; block_id=bi, event=:Block, warn_count)
+    warn_ctx = (; block_id=bi, event=:Block, warn_count, verbose)
     qdur = quantize_time_value(block_duration, getfield(raster, key), warn_ctx, :DUR; step_name=key)
     return qrf, qgr..., qadc, qdur
 end
 
-function quantize_rf!(rf, raster, block_id, warn_count)
+function quantize_rf!(rf, raster, block_id, warn_count; verbose=true)
     key = :RadiofrequencyRasterTime
     Δt_rf = getfield(raster, key)
     sys = pulseq_timing_scanner(raster)
-    warn_ctx = (; block_id, event=:RF, warn_count)
+    warn_ctx = (; block_id, event=:RF, warn_count, verbose)
     qt(value, field; step=Δt_rf, step_name=key) =
         quantize_time_value(value, step, warn_ctx, field; step_name)
     qT(value, field; step=Δt_rf, step_name=key) =
@@ -1019,11 +1021,11 @@ function pulseq_timing_policy(gr::Union{UniformlySampledGrad,TimeShapedGrad}, Δ
     return (; time_shape_id, time_step, rise_fall_step)
 end
 
-function quantize_grad!(gr, raster, block_id, axis_name, warn_count)
+function quantize_grad!(gr, raster, block_id, axis_name, warn_count; verbose=true)
     key = :GradientRasterTime
     event = Symbol("GR", axis_name)
     Δt_gr = getfield(raster, key)
-    warn_ctx = (; block_id, event, warn_count)
+    warn_ctx = (; block_id, event, warn_count, verbose)
     qt(value, field; step=Δt_gr, step_name=key) =
         quantize_time_value(value, step, warn_ctx, field; step_name)
     qT(value, field; step=Δt_gr, step_name=key) =
@@ -1036,9 +1038,9 @@ function quantize_grad!(gr, raster, block_id, axis_name, warn_count)
     return gr
 end
 
-function quantize_adc!(adc, raster, block_id, warn_count)
+function quantize_adc!(adc, raster, block_id, warn_count; verbose=true)
     sys = pulseq_timing_scanner(raster)
-    warn_ctx = (; block_id, event=:ADC, warn_count)
+    warn_ctx = (; block_id, event=:ADC, warn_count, verbose)
     qt(value, field; step, step_name) =
         quantize_time_value(value, step, warn_ctx, field; step_name)
     dwell_s = dwell(adc, sys)
@@ -1046,7 +1048,7 @@ function quantize_adc!(adc, raster, block_id, warn_count)
     adc.T = adc.N == 1 ? dwell_s : (adc.N - 1) * dwell_s
     pulseq_delay = delay(adc, sys)
     if pulseq_delay < 0
-        @warn "ADC delay in Koma ($(round(adc.delay*1e3, digits=4)) ms) is below dwell/2 ($(round(dwell_s/2*1e3, digits=4)) ms).
+        verbose && @warn "ADC delay in Koma ($(round(adc.delay*1e3, digits=4)) ms) is below dwell/2 ($(round(dwell_s/2*1e3, digits=4)) ms).
 In Pulseq, the first ADC sample is acquired at dwell/2. Therefore, a Pulseq delay of 0 corresponds to a Koma delay of dwell/2.
 This means the Koma delay must be >= dwell/2. Clamping it to this minimum value...
 See https://pulseq.github.io/pulseq_shapes_and_times.pdf#page=10"
@@ -1089,6 +1091,7 @@ function quantize_sample_times(t::Number, n_samples, step, warn_ctx, field; step
 end
 
 function warn_time_quantization(warn_ctx, field, step; step_name=nothing)
+    warn_ctx.verbose || return nothing
     count = Threads.atomic_add!(warn_ctx.warn_count, 1)
     if count < 10
         step_text = "$(pulseq_float_string(step * 1e6)) us"
@@ -1118,7 +1121,7 @@ Writes a Sequence struct to a Pulseq file with `.seq` extension.
   Defaults to `significant_digits`; use `9` to match MATLAB Pulseq shapes.
   For MATLAB Pulseq parity, use `significant_digits=6,
   shape_significant_digits=9`.
-- `verbose`: (`::Bool`, `=true`) show informational writing/checking messages
+- `verbose`: (`::Bool`, `=true`) show writing/checking messages and export-conversion warnings
 
 # Examples
 ```julia-repl
@@ -1165,11 +1168,11 @@ function pulseq_data(seq::KomaMRIBase.Sequence; sys=nothing, check_timing=true, 
             "maxB1 = $(check_sys.limits.B1 * 1e6) uT, ",
             "maxGrad = $(check_sys.limits.Gmax * 1e3) mT/m, ",
             "maxSlew = $(check_sys.limits.Smax) mT/m/ms, ",
-            "adcSamplesDivisor = 4",
+            "ADC sample count must be even",
         )
         KomaMRIBase.check_hw_limits(seq, check_sys)
     end
-    raster = isnothing(sys) ? PulseqRaster(seq) : PulseqRaster(seq, sys)
+    raster = isnothing(sys) ? PulseqRaster(seq) : PulseqRaster(seq, sys; verbose)
     if check_timing && verbose
         @info string(
             "Checking Pulseq timing from $source:\n\t",
@@ -1183,7 +1186,7 @@ function pulseq_data(seq::KomaMRIBase.Sequence; sys=nothing, check_timing=true, 
         )
     end
     prepared = prepare_pulseq_write(
-        seq, raster; preserve_block_durations=check_timing, sys=check_sys,
+        seq, raster; preserve_block_durations=check_timing, sys=check_sys, verbose,
     )
     if check_timing
         KomaMRIBase.check_timing(prepared, check_sys)

@@ -86,7 +86,7 @@ end
     block_time, coords)
     @trace track_numbers=false if adc
         @. prealloc.M.xy = exp(-block_time / p.T2) * M.xy * cis(prealloc.ϕ)
-        outflow_spin_reset!(prealloc.M.xy, seq.t[i + 1], p.motion)
+        outflow_spin_reset!(prealloc.M.xy, spin_reset_state(prealloc))
         update_sensitivities!(prealloc.sens, sys.receiver, coords, p.motion)
         acquire_signal!(sig, sample, prealloc.M.xy, prealloc.sens, coords)
     end

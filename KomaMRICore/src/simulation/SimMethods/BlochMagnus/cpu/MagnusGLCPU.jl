@@ -12,8 +12,11 @@ function run_spin_excitation!(
     T = eltype(p.ρ)
     B_to_ω = T(-2π * γ)
     ΔBz = prealloc.ΔBz
+    spin_reset = prealloc.spin_reset
     (; ωxy_minus, ωz_minus, ωxy_plus, ωz_plus, θxy, θz, rotation_norm, α, β, Maux_xy, Maux_z) = prealloc
     sample = _sample_counter(sig)
+    advance_spin_reset!(spin_reset, firstindex(seq.t))
+    outflow_spin_reset!(M, spin_reset; replace_by=p.ρ)
 
     ψ_start = seq.ψ[1]
     @trace track_numbers=false if !iszero(ψ_start)
@@ -47,7 +50,8 @@ function run_spin_excitation!(
 
         @. M.xy = M.xy * exp(-Δt / p.T2)
         @. M.z = M.z * exp(-Δt / p.T1) + p.ρ * (T(1) - exp(-Δt / p.T1))
-        outflow_spin_reset_at!(M, seq.t, i1, p.motion; replace_by=p.ρ)
+        advance_spin_reset!(spin_reset, i1)
+        outflow_spin_reset!(M, spin_reset; replace_by=p.ρ)
         if !isempty(sig)
             adc = seq.ADC[i1]
             acquire_signal!(sig, sample, adc, M, sys, prealloc, p, seq, i1 - 1)

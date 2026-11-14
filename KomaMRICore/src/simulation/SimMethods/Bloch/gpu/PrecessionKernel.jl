@@ -3,7 +3,8 @@
 @kernel unsafe_indices=true inbounds=true function precession_kernel!(
     sig_output::AbstractMatrix{Complex{T}}, 
     M_xy, M_z, receiver, N_coils, N_adc,
-    @Const(p_x), @Const(p_y), @Const(p_z), @Const(p_ΔBz), @Const(p_T1), @Const(p_T2), @Const(p_ρ), N_spins,
+    @Const(p_x), @Const(p_y), @Const(p_z), @Const(p_ΔBz), @Const(p_T1), @Const(p_T2), @Const(p_ρ),
+    p_first_reset, N_spins,
     @Const(s_Gx), @Const(s_Gy), @Const(s_Gz), @Const(s_Δt), @Const(s_ADC), s_length,
     ::Val{MOTION}, ::Val{USE_WARP_REDUCTION}, ::Val{HAS_ADC},
     ::Val{HAS_SENSITIVITIES},
@@ -32,9 +33,11 @@
     z = zero(T)
     Bz_prev = zero(T)
     Bz_next = zero(T)
+    first_reset = typemax(UInt32)
 
     # Setting per-thread (ith spin) properties, and Bz for t0
     if active
+        first_reset = spin_first_reset(p_first_reset, i)
         Mxy_r, Mxy_i = reim(M_xy[i])
         ΔBz = p_ΔBz[i]
         T2 = p_T2[i]
@@ -60,7 +63,7 @@
         if HAS_ADC && s_ADC[s_idx]
             sig_r = zero(T)
             sig_i = zero(T)
-            if active
+            if active && !spin_has_reset(first_reset, s_idx)
                 E2 = exp(-t / T2)
                 cis_ϕ_i, cis_ϕ_r = sincos(ϕ)
                 sig_r = E2 * (Mxy_r * cis_ϕ_r - Mxy_i * cis_ϕ_i)
@@ -90,11 +93,16 @@
     end
     # Save magnetization at end of block
     if active
-        E1 = exp(-t / p_T1[i])
-        E2 = exp(-t / T2)
-        cis_ϕ_i, cis_ϕ_r = sincos(ϕ)
-        M_xy[i] = complex(E2 * (Mxy_r * cis_ϕ_r - Mxy_i * cis_ϕ_i), E2 * (Mxy_r * cis_ϕ_i + Mxy_i * cis_ϕ_r))
-        M_z[i] = M_z[i] * E1 + p_ρ[i] * (T(1) - E1)
+        if spin_has_reset(first_reset, s_length)
+            M_xy[i] = zero(Complex{T})
+            M_z[i] = p_ρ[i]
+        else
+            E1 = exp(-t / p_T1[i])
+            E2 = exp(-t / T2)
+            cis_ϕ_i, cis_ϕ_r = sincos(ϕ)
+            M_xy[i] = complex(E2 * (Mxy_r * cis_ϕ_r - Mxy_i * cis_ϕ_i), E2 * (Mxy_r * cis_ϕ_i + Mxy_i * cis_ϕ_r))
+            M_z[i] = M_z[i] * E1 + p_ρ[i] * (T(1) - E1)
+        end
     end
 end
 

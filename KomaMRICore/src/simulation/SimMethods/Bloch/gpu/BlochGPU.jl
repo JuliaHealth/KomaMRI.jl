@@ -9,12 +9,14 @@ struct BlochGPUPrealloc{
     OffResonanceType<:AbstractVector,
     S,
     P,
+    F,
 } <: PreallocResult
     sig_output::SignalType
     sig_output_final::ReducedSignalType
     ΔBz::OffResonanceType
     receiver::S
     coordinates::P
+    spin_reset::F
 end
 
 function bloch_gpu_prealloc(
@@ -29,6 +31,7 @@ function bloch_gpu_prealloc(
         obj.Δw ./ T(2π .* γ),
         prealloc_receiver(sys.receiver, obj, backend, obj.motion),
         prealloc_motion_coordinates(obj.motion, backend, obj, max_block_length),
+        prealloc_spin_reset(obj.motion, backend, length(obj), max_block_length),
     )
 end
 
@@ -110,7 +113,8 @@ function run_spin_precession!(
         pre.sig_output,
         M.xy, M.z,
         pre.receiver, UInt32(size(sig, 2)), UInt32(size(sig, 1)),
-        x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
+        x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ,
+        first_reset_steps(pre.spin_reset), UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.ADC, UInt32(length(seq.t)),
         motion_enabled(pre.coordinates), Val(supports_warp_reduction(backend)),
         Val(has_adc), has_coil_sensitivities(pre.receiver),
@@ -120,7 +124,6 @@ function run_spin_precession!(
 
     has_adc && reduce_signal_groups!(sig, pre, length(M.xy), groupsize)
 
-    outflow_spin_reset!(M, seq.t', p.motion; replace_by=p.ρ)
     return nothing
 end
 
@@ -147,7 +150,8 @@ function run_spin_precession!(
         pre.sig_output,
         M.xy, M.z,
         pre.receiver, UInt32(size(sig, 2)), UInt32(size(sig, 1)),
-        x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
+        x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ,
+        first_reset_steps(pre.spin_reset), UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.ADC, UInt32(length(seq.t)),
         motion_enabled(pre.coordinates), Val(supports_warp_reduction(backend)),
         Val(has_adc), has_coil_sensitivities(pre.receiver),
@@ -157,9 +161,6 @@ function run_spin_precession!(
 
     #Signal
     has_adc && reduce_signal_groups!(sig, pre, length(M.xy), groupsize)
-
-    #Reset Spin-State (Magnetization). Only for FlowPath
-    outflow_spin_reset!(M, seq.t', p.motion; replace_by=p.ρ)
 
     return nothing
 end
@@ -198,7 +199,8 @@ function run_spin_excitation!(
         pre.sig_output,
         M.xy, M.z,
         pre.receiver, UInt32(size(sig, 2)), UInt32(size(sig, 1)),
-        x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
+        x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ,
+        first_reset_steps(pre.spin_reset), UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.Δf, seq.B1, seq.ψ, seq.ADC, UInt32(length(seq.t)),
         motion_enabled(pre.coordinates), Val(supports_warp_reduction(backend)),
         Val(has_adc), has_coil_sensitivities(pre.receiver),
@@ -208,7 +210,6 @@ function run_spin_excitation!(
 
     has_adc && reduce_signal_groups!(sig, pre, length(M.xy), groupsize)
 
-    outflow_spin_reset!(M,  seq.t', p.motion; replace_by=p.ρ)
     return nothing
 end
 
@@ -235,7 +236,8 @@ function run_spin_excitation!(
         pre.sig_output,
         M.xy, M.z,
         pre.receiver, UInt32(size(sig, 2)), UInt32(size(sig, 1)),
-        x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
+        x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ,
+        first_reset_steps(pre.spin_reset), UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.Δf, seq.B1, seq.ψ, seq.ADC, UInt32(length(seq.t)),
         motion_enabled(pre.coordinates), Val(supports_warp_reduction(backend)),
         Val(has_adc), has_coil_sensitivities(pre.receiver),
@@ -245,9 +247,6 @@ function run_spin_excitation!(
 
     #Signal
     has_adc && reduce_signal_groups!(sig, pre, length(M.xy), groupsize)
-
-    #Reset Spin-State (Magnetization). Only for FlowPath
-    outflow_spin_reset!(M,  seq.t', p.motion; replace_by=p.ρ) # TODO: reset state inside kernel
 
     return nothing
 end
@@ -274,7 +273,8 @@ begin
         pre.sig_output,
         M.xy, M.z,
         pre.receiver, UInt32(size(sig, 2)), UInt32(size(sig, 1)),
-        x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
+        x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ,
+        first_reset_steps(pre.spin_reset), UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.Δf, seq.B1, seq.ψ, seq.ADC, UInt32(length(seq.t)),
         motion_enabled(pre.coordinates), Val(supports_warp_reduction(backend)),
         Val(has_adc), has_coil_sensitivities(pre.receiver),
@@ -284,6 +284,5 @@ begin
 
     has_adc && reduce_signal_groups!(sig, pre, length(M.xy), groupsize)
 
-    outflow_spin_reset!(M,  seq.t', p.motion; replace_by=p.ρ)
     return nothing
 end
