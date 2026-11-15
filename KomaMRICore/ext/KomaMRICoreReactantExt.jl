@@ -85,6 +85,11 @@ function _run_simulation_block!(runner, obj::Phantom{<:Reactant.AnyTracedRVector
     return nothing
 end
 
+function acquire_signal!(sig, Mxy::Reactant.AnyTracedRVector, ::KomaMRIBase.UniformCoilSens, _)
+    sig[begin] = only(sum(Mxy))
+    return nothing
+end
+
 function acquire_signal!(sig::Reactant.AnyTracedRMatrix, sample, Mxy, sensitivities, coords)
     signal = similar(sig, size(sig, 2))
     acquire_signal!(signal, Mxy, sensitivities, coords)

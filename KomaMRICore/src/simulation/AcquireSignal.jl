@@ -61,7 +61,7 @@ function update_sensitivities!(
 end
 
 function acquire_signal!(sig, Mxy::AbstractVector, ::UniformCoilSens, _)
-    sig[begin] = only(sum(Mxy))
+    sig .= sum(Mxy)
     return nothing
 end
 
