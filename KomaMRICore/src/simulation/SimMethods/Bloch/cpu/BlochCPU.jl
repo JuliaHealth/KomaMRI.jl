@@ -43,7 +43,7 @@ end
 
 """Preallocates arrays for use in run_spin_precession! and run_spin_excitation!."""
 function prealloc(
-    ::Bloch, backend::KA.CPU, obj, M,
+    ::Union{Bloch,BlochDict}, backend::KA.CPU, obj, M,
     max_block_length, _max_adc_samples, _groupsize, sys,
 )
     T = eltype(obj.ρ)
@@ -86,7 +86,8 @@ function run_spin_precession!(
     sim_method::Bloch,
     groupsize,
     backend::KA.CPU,
-    prealloc::PreallocResult
+    prealloc::PreallocResult,
+    sample=_sample_counter(sig),
 )
     T = eltype(p.ρ)
     #Rename arrays
@@ -98,15 +99,15 @@ function run_spin_precession!(
     spin_reset = prealloc.spin_reset
     #Initialize
     fill!(ϕ, zero(T))
-    block_time = zero(T)
-    sample = 1
+    block_time = zero(seq.Δt[1])
+    all_adc = size(sig, 1) == length(seq.Δt)
     advance_spin_reset!(spin_reset, firstindex(seq.t))
     x, y, z = spin_coordinates!(
         prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[1],
     )
     @. Bz_old = x * seq.Gx[1] + y * seq.Gy[1] + z * seq.Gz[1] + ΔBz
     #Simulation
-    for i in eachindex(seq.Δt)
+    @trace track_numbers=false for i in eachindex(seq.Δt)
         #Motion
         x, y, z = spin_coordinates!(
             prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i + 1],
@@ -118,15 +119,11 @@ function run_spin_precession!(
         block_time += seq.Δt[i]
         advance_spin_reset!(spin_reset, i + 1)
         #Acquired Signal
-        if seq.ADC[i + 1]
-            #Update signal
-            @. Mxy = exp(-block_time / p.T2) * M.xy * cis(ϕ)
-            outflow_spin_reset!(Mxy, spin_reset)
-            update_sensitivities!(prealloc.sens, sys.receiver, (x, y, z), p.motion)
-            acquire_signal!(
-                @view(sig[sample, :]), Mxy, prealloc.sens, (x, y, z),
-            )
-            sample += 1
+        if !isempty(sig)
+            adc = all_adc || seq.ADC[i + 1]
+            acquire_signal!(sig, sample, adc, M, sys, prealloc, p, seq, i,
+                block_time, (x, y, z))
+            sample += adc
         end
         #Update simulation state
         Bz_old .= Bz_new
@@ -150,10 +147,11 @@ function run_spin_excitation!(
     sig::AbstractArray,
     M::Mag,
     sys,
-    sim_method::Bloch,
+    sim_method::Union{Bloch,BlochDict},
     groupsize,
     backend::KA.CPU,
-    prealloc::BlochCPUPrealloc
+    prealloc::BlochCPUPrealloc,
+    sample=_sample_counter(sig),
 )
     T = eltype(p.ρ)
     #Rename arrays
@@ -167,16 +165,16 @@ function run_spin_excitation!(
     Maux_z = prealloc.M.z
     spin_reset = prealloc.spin_reset
     #Initialize
-    sample = 1
+    all_adc = size(sig, 1) == length(seq.Δt)
     advance_spin_reset!(spin_reset, firstindex(seq.t))
     outflow_spin_reset!(M, spin_reset; replace_by=p.ρ)
     # Rotating frame -> RF frame
     ψ_start = seq.ψ[1]
-    if !iszero(ψ_start)
+    @trace track_numbers=false if !iszero(ψ_start)
         @. M.xy = M.xy * cis(-ψ_start)
     end
     #Simulation
-    for i in eachindex(seq.Δt)
+    @trace track_numbers=false for i in eachindex(seq.Δt)
         #Motion
         x, y, z = spin_coordinates!(
             prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i],
@@ -188,7 +186,7 @@ function run_spin_excitation!(
         #Spinor Rotation
         @. φ_half = T(-π * γ) * (B * seq.Δt[i]) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler
         @. α = cos(φ_half)
-        @. B = sin(φ_half) / (B + (B == 0) * eps(T))
+        @. B = ifelse(B == 0, T(-π * γ) * seq.Δt[i], sin(φ_half) / B)
         @. α -= complex(zero(Bz), Bz * B)
         @. β = complex(imag(B1) * B, -real(B1) * B)
         mul!(Spinor(α, β), M, Maux_xy, Maux_z)
@@ -198,18 +196,15 @@ function run_spin_excitation!(
         advance_spin_reset!(spin_reset, i + 1)
         outflow_spin_reset!(M, spin_reset; replace_by=p.ρ)
         #Acquire signal
-        if seq.ADC[i + 1] # ADC at the end of the time step
-            coords = spin_coordinates!(
-                prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i + 1],
-            )
-            update_sensitivities!(prealloc.sens, sys.receiver, coords, p.motion)
-            acquire_signal!(@view(sig[sample, :]), M.xy, prealloc.sens, coords)
-            sample += 1
+        if !isempty(sig)
+            adc = all_adc || seq.ADC[i + 1] # ADC at the end of the time step
+            acquire_signal!(sig, sample, adc, M, sys, prealloc, p, seq, i, sim_method)
+            sample += adc
         end
     end
     # RF frame -> Rotating frame
     ψ_end = seq.ψ[end]
-    if !iszero(ψ_end)
+    @trace track_numbers=false if !iszero(ψ_end)
         @. M.xy = M.xy * cis(ψ_end)
     end
     return nothing

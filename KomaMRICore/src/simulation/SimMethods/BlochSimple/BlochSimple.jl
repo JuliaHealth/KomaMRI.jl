@@ -22,6 +22,9 @@ function prealloc(
     )
 end
 
+@inline acquire_signal!(sig, sample, M, ::SimulationMethod, receiver, coords) =
+    acquire_signal!(sig, sample, M.xy, receiver, coords)
+
 function acquire_block_signal!(sig, Mxy, receiver, ::NoMotion, positions, _adc)
     acquire_signal!(sig, Mxy, receiver, positions)
     return nothing
@@ -170,11 +173,8 @@ function run_spin_excitation!(
             M, spin_reset, i + 1, seq.t, p.motion; replace_by=p.ρ,
         )
         #Acquire signal
-        # TODO: use sim_method and sys to modify sig 
         if s.ADC # ADC at the end of the time step
-            acquire_signal!(
-                @view(sig[sample, :]), M.xy, sys.receiver, (x, y, z),
-            )
+            acquire_signal!(sig, sample, M, sim_method, sys.receiver, (x, y, z))
             sample += 1
         end
     end
