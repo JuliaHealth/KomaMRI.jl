@@ -90,13 +90,6 @@ function acquire_signal!(sig, Mxy::Reactant.AnyTracedRVector, ::KomaMRIBase.Unif
     return nothing
 end
 
-function acquire_signal!(sig::Reactant.AnyTracedRMatrix, sample, Mxy, sensitivities, coords)
-    signal = similar(sig, size(sig, 2))
-    acquire_signal!(signal, Mxy, sensitivities, coords)
-    sig[sample, :] = signal
-    return nothing
-end
-
 # Nested `@trace` blocks must live in separate functions
 function _run_block!(is_excitation, obj, block, sig, Xt, sys, sim_method,
     excitation_groupsize, precession_groupsize, backend, prealloc, sample)

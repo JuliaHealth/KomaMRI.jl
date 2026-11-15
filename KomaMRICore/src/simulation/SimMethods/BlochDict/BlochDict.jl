@@ -123,10 +123,8 @@ end
 @inline acquire_signal!(sig, sample, M, sim_method::BlochDict, receiver, coords) =
     acquire_signal!(sig, sample, M, sim_method)
 
-@inline function acquire_signal!(sig, sample, adc, M, sys, prealloc, p, seq, i,
-    sim_method::BlochDict)
-    @trace track_numbers=false if adc
-        acquire_signal!(sig, sample, M, sim_method)
+@inline acquire_signal!(sig, sample, adc, M, sys, prealloc, p, seq, i, sim_method::BlochDict) =
+    store_sample!(sig, sample, adc) do row
+        row[:, 1] = M.xy
+        sim_method.save_Mz && (row[:, 2] = M.z)
     end
-    return nothing
-end
