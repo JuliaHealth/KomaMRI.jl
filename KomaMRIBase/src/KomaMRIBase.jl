@@ -127,7 +127,7 @@ export addblock!, @addblock
 export Grad, RF, ADC, Delay, Duration, QuaternionRot
 export area, dur, dwell, delay, rf_center, get_block_start_times, get_samples
 export ceil_to_raster, floor_to_raster, round_to_raster, raster_samples
-export RFuse, Excitation, Refocusing, Inversion, Saturation, Preparation, Other, Undefined
+export RFUse, Excitation, Refocusing, Inversion, Saturation, Preparation, Other, Undefined
 export DiscreteSequence
 export discretize, SamplingRule, BlockSamplingContext, MaxStepSizeRule, additional_sampling_times, select_sampling_times, get_adc_phase_compensation, get_adc_sampling_times
 export is_Gx_on, is_Gy_on, is_Gz_on, is_RF_on, is_ADC_on
