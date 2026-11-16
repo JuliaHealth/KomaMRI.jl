@@ -17,8 +17,10 @@
 # [10.1109/TMI.2025.3639398](https://doi.org/10.1109/TMI.2025.3639398).
 
 using KomaMRI
-using OptiksMRI
+using OptiksMRI, OptiksMRI.Trajectories
 
+# The trajectory families live in the `OptiksMRI.Trajectories` submodule.
+#
 # Both packages export a `plot_kspace` function, so below we call them as
 # `OptiksMRI.plot_kspace` and `KomaMRI.plot_kspace`.
 #
