@@ -1,6 +1,6 @@
 struct BlochMagnusLinCPUPrealloc{
-    CV<:AbstractVector,RV<:AbstractVector,S,P,R
-} <: BlochMagnusCPUPrealloc
+    T,CV<:AbstractVector,RV<:AbstractVector{T},S,P,R
+} <: BlochMagnusCPUPrealloc{T}
     ωxy_0::CV
     ωz_0::RV
     ωxy_1::CV

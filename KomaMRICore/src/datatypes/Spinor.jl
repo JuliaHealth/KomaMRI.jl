@@ -23,12 +23,19 @@ R V R^{*}``.
 # Returns
 - `spinor`: (`::Spinor`) Spinor struct
 """
-struct Spinor{A<:AbstractVector,B<:AbstractVector}
+struct Spinor{T,A<:AbstractVector,B<:AbstractVector}
 	α::A
 	β::B
 end
+Spinor{T}(α::A, β::B) where {T<:Real,A<:AbstractVector{Complex{T}},B<:AbstractVector{Complex{T}}} =
+    Spinor{T,A,B}(α, β)
+Spinor(α::A, β::B) where {T<:Real,A<:AbstractVector{Complex{T}},B<:AbstractVector{Complex{T}}} =
+    Spinor{T}(α, β)
+Spinor(α::A, β::B) where {A<:AbstractVector,B<:AbstractVector} =
+    Spinor{eltype(A),A,B}(α, β)
 Spinor(α::Complex, β::Complex) = Spinor([α], [β])
 Spinor(α::Real, β::Real) = Spinor([complex(α)], [complex(β)])
+Base.one(::Spinor) = Spinor(1.0, 0.0)
 Base.getindex(s::Spinor, i) = Spinor(s.α[i], s.β[i])
 Base.view(s::Spinor, i::UnitRange) = @views Spinor(s.α[i], s.β[i])
 """
