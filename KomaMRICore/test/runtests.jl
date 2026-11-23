@@ -978,13 +978,21 @@ end
         end
 
         @testset "Reverse-mode optimization improves the simulated target profile" begin
-            # RF and density derivatives must agree with finite differences across integration schemes.
-            for (sim_method, adc_during_rf) in (
-                (BlochSimple(), false), (Bloch(), false),
-                (BlochMagnusMid2(), false), (BlochMagnusGL4(), false),
-                (BlochDict(), true), (BlochDict(save_Mz=true), true),
+            coil_grid = [-5e-3, 1e-3, 5e-3]
+            coil_values = reshape(ComplexF64[
+                1.0+0.1im, 0.9+0.0im, 1.2-0.1im,
+                0.8-0.2im, 1.1+0.3im, 0.7+0.2im,
+            ], 1, 1, length(coil_grid), 2)
+            uniform = UniformCoilSens()
+            arbitrary = ArbitraryCoilSens([0.0], [0.0], coil_grid, coil_values)
+            # RF and density derivatives must agree with finite differences for single- and multi-coil signals.
+            for (sim_method, adc_during_rf, receiver) in (
+                (BlochSimple(), false, uniform), (Bloch(), false, uniform),
+                (Bloch(), false, arbitrary),
+                (BlochMagnusMid2(), false, uniform), (BlochMagnusGL4(), false, uniform),
+                (BlochDict(), true, uniform), (BlochDict(save_Mz=true), true, uniform),
             )
-                params = bloch_node_ad_parameters(sim_method; adc_during_rf)
+                params = bloch_node_ad_parameters(sim_method; adc_during_rf, receiver)
                 params_ra = bloch_node_ad_reactant_parameters(params)
                 x = Reactant.to_rarray(copy(BLOCH_NODE_AD_X0))
                 compiled = Reactant.allowscalar() do

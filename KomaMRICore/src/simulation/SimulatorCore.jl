@@ -1,5 +1,5 @@
 abstract type SimulationMethod end #get all available types by using subtypes(KomaMRI.SimulationMethod)
-abstract type SpinStateRepresentation end #get all available types by using subtypes(KomaMRI.SpinStateRepresentation)
+abstract type SpinStateRepresentation{T<:Number} end #get all available types by using subtypes(KomaMRI.SpinStateRepresentation)
 
 #Defined methods:
 include("SimMethods/SimulationMethod.jl")  #Defines simulation methods
@@ -261,6 +261,7 @@ end
 end
 
 _prepare_sequence(obj, seqd) = seqd
+_simulation_signal(density, dims) = zeros(ComplexF64, dims)
 
 """Split if simulation block is too long (more than max_block_length)"""
 function split_range(r, max_block_length)
@@ -420,8 +421,7 @@ function simulate(
     if sim_params["gpu"]
         sim_params["Nthreads"] = 1
     end
-    sig = similar(obj.ρ, ComplexF64, Ndims..., sim_params["Nthreads"])
-    fill!(sig, 0)
+    sig = _simulation_signal(obj.ρ, (Ndims..., sim_params["Nthreads"]))
     supports_float64 = KA.supports_float64(backend)
     if sim_params["gpu"] && sim_params["precision"] == "bigfloat"
         set_precision_fallback!(sim_params, backend, supports_float64 ? "f64" : "f32")

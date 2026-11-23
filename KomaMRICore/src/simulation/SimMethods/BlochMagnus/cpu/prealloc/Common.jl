@@ -1,4 +1,4 @@
-abstract type BlochMagnusCPUPrealloc <: PreallocResult end
+abstract type BlochMagnusCPUPrealloc{T} <: PreallocResult{T} end
 
 cbuf(obj::Phantom) = zero.(complex.(obj.ρ))
 rbuf(obj::Phantom) = zero.(obj.ρ)

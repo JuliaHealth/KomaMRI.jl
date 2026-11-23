@@ -2,7 +2,7 @@ using FiniteDifferences: central_fdm, grad
 
 const BLOCH_NODE_AD_X0 = [0.0, 3.5, 0.0, 1.0, 0.75, 0.5]
 
-function bloch_node_ad_parameters(sim_method; adc_during_rf=false)
+function bloch_node_ad_parameters(sim_method; adc_during_rf=false, receiver=UniformCoilSens())
     rf_duration = 0.6e-3
     total_duration = 1.4e-3
     z = collect(range(-4e-3, 4e-3; length=3))
@@ -47,7 +47,7 @@ function bloch_node_ad_parameters(sim_method; adc_during_rf=false)
     params = (;
         seq,
         obj,
-        sys=Scanner(),
+        sys=Scanner(; receiver),
         sim_params,
         target_profile=zeros(ComplexF64, 3),
         node_times=range(0.0, rf_duration; length=3),
@@ -95,6 +95,7 @@ function bloch_node_ad_reactant_parameters(params)
     )
     return merge(params, (;
         seq,
+        sys=Reactant.to_rarray(params.sys),
         obj=Reactant.to_rarray(params.obj),
         target_profile=Reactant.to_rarray(params.target_profile),
     ))

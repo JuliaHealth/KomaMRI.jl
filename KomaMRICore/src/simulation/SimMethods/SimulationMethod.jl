@@ -32,10 +32,10 @@ function initialize_spins_state(obj::Phantom, sim_method::SimulationMethod)
 end
 
 """Stores pre-allocated arrays for use in run_spin_precession! and run_spin_excitation!"""
-abstract type PreallocResult end
+abstract type PreallocResult{T<:Number} end
 
 """Default preallocation struct, stores nothing."""
-struct DefaultPrealloc <: PreallocResult end
+struct DefaultPrealloc{T} <: PreallocResult{T} end
 
 Base.view(p::PreallocResult, i::UnitRange) = p
 
@@ -102,10 +102,9 @@ end
 prealloc(
     ::SimulationMethod, ::KA.Backend, obj, _M,
     _max_block_length, _max_adc_samples, _groupsize, _sys,
-) = DefaultPrealloc()
+) = DefaultPrealloc{eltype(obj.x)}()
 
 include("BlochSimple/BlochSimple.jl")
-include("BlochDict/BlochDict.jl")
 include("Bloch/cpu/BlochCPU.jl")
 include("BlochMagnus/cpu/BlochMagnusCPU.jl")
 include("Bloch/gpu/BlochGPU.jl")
@@ -113,3 +112,4 @@ include("BlochMagnus/gpu/MagnusMidKernel.jl")
 include("BlochMagnus/gpu/MagnusQuadKernel.jl")
 include("BlochMagnus/gpu/MagnusGLKernel.jl")
 include("BlochMagnus/gpu/MagnusBGLKernel.jl")
+include("BlochDict/BlochDict.jl")

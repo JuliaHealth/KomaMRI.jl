@@ -1,6 +1,7 @@
 """Stores preallocated structs for use in Bloch CPU run_spin_precession! and run_spin_excitation! functions."""
 struct BlochCPUPrealloc{
-    MType<:Mag,
+    T,
+    MType<:Mag{T},
     BzOldType<:AbstractVector,
     BzNewType<:AbstractVector,
     PhiType<:AbstractVector,
@@ -9,7 +10,7 @@ struct BlochCPUPrealloc{
     S,
     P,
     R,
-} <: PreallocResult
+} <: PreallocResult{T}
     M::MType
     Bz_old::BzOldType
     Bz_new::BzNewType
@@ -43,7 +44,7 @@ end
 
 """Preallocates arrays for use in run_spin_precession! and run_spin_excitation!."""
 function prealloc(
-    ::Union{Bloch,BlochDict}, backend::KA.CPU, obj, M,
+    ::Bloch, backend::KA.CPU, obj, M,
     max_block_length, _max_adc_samples, _groupsize, sys,
 )
     T = eltype(obj.ρ)
@@ -147,7 +148,7 @@ function run_spin_excitation!(
     sig::AbstractArray,
     M::Mag,
     sys,
-    sim_method::Union{Bloch,BlochDict},
+    sim_method::Bloch,
     groupsize,
     backend::KA.CPU,
     prealloc::BlochCPUPrealloc,
@@ -198,7 +199,7 @@ function run_spin_excitation!(
         #Acquire signal
         if !isempty(sig)
             adc = all_adc || seq.ADC[i + 1] # ADC at the end of the time step
-            acquire_signal!(sig, sample, adc, M, sys, prealloc, p, seq, i, sim_method)
+            acquire_signal!(sig, sample, adc, M, sys, prealloc, p, seq, i)
             sample += adc
         end
     end

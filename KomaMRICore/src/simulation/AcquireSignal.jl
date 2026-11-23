@@ -65,27 +65,15 @@ function acquire_signal!(sig, Mxy::AbstractVector, ::UniformCoilSens, _)
     return nothing
 end
 
-@inline acquire_signal!(sig, sample, Mxy, sensitivities, coords) =
-    acquire_signal!(@view(sig[sample, :]), Mxy, sensitivities, coords)
-
 @inline _sample_counter(sig) = firstindex(sig, 1)
 
-# Fills row `sample` of `sig` with `acquire!(row)` when `adc` is on. With a host index the
-# row is written in place and skipped when off. An index that is only known at run time
-# (e.g. traced by Reactant) cannot branch or be viewed, so the row is stored with a mask.
+# Acquire into the selected signal row when the ADC is on.
 @inline function store_sample!(acquire!, sig, sample::Integer, adc::Bool)
     adc && acquire!(@view(sig[sample, ntuple(_ -> Colon(), ndims(sig) - 1)...]))
     return nothing
 end
-@inline function store_sample!(acquire!, sig, sample, adc)
-    dims = ntuple(_ -> Colon(), ndims(sig) - 1)
-    row = similar(sig, size(sig)[2:end])
-    acquire!(row)
-    sig[sample, dims...] = adc === true ? row : ifelse.(adc, row, sig[sample, dims...])
-    return nothing
-end
 
-@inline acquire_signal!(sig, sample, adc, M, sys, prealloc, p, seq, i, _sim_method=nothing) =
+@inline acquire_signal!(sig, sample, adc, M, sys, prealloc, p, seq, i) =
     store_sample!(sig, sample, adc) do row
         coords = spin_coordinates!(
             prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i + 1],

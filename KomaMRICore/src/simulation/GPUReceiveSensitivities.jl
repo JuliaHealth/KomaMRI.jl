@@ -47,6 +47,7 @@ end
 end
 
 @inline gpu_lerp(a, b, weight) = a + (b - a) * weight
+@inline gpu_cell_upper_index(i, n) = min(i + 1, n)
 @inline gpu_coil_sample(values, ix, iy, iz, coil) = @inbounds values[ix, iy, iz, coil]
 
 @inline function gpu_interpolate_sensitivity(
@@ -61,26 +62,26 @@ end
 end
 
 @inline function gpu_interpolate_cell(ix, iy, iz, wx, wy, wz, coil, nx, ny, nz, coil_sens)
-    ix1 = min.(ix .+ 1, nx)
-    iy1 = min.(iy .+ 1, ny)
-    iz1 = min.(iz .+ 1, nz)
+    ix1 = gpu_cell_upper_index(ix, nx)
+    iy1 = gpu_cell_upper_index(iy, ny)
+    iz1 = gpu_cell_upper_index(iz, nz)
     @inbounds begin
-        c00 = gpu_lerp.(
+        c00 = gpu_lerp(
             gpu_coil_sample(coil_sens, ix, iy, iz, coil), gpu_coil_sample(coil_sens, ix1, iy, iz, coil), wx,
         )
-        c10 = gpu_lerp.(
+        c10 = gpu_lerp(
             gpu_coil_sample(coil_sens, ix, iy1, iz, coil), gpu_coil_sample(coil_sens, ix1, iy1, iz, coil), wx,
         )
-        c01 = gpu_lerp.(
+        c01 = gpu_lerp(
             gpu_coil_sample(coil_sens, ix, iy, iz1, coil), gpu_coil_sample(coil_sens, ix1, iy, iz1, coil), wx,
         )
-        c11 = gpu_lerp.(
+        c11 = gpu_lerp(
             gpu_coil_sample(coil_sens, ix, iy1, iz1, coil), gpu_coil_sample(coil_sens, ix1, iy1, iz1, coil), wx,
         )
     end
-    c0 = gpu_lerp.(c00, c10, wy)
-    c1 = gpu_lerp.(c01, c11, wy)
-    return gpu_lerp.(c0, c1, wz)
+    c0 = gpu_lerp(c00, c10, wy)
+    c1 = gpu_lerp(c01, c11, wy)
+    return gpu_lerp(c0, c1, wz)
 end
 
 # Scalar sensitivity methods called from Bloch GPU kernels.

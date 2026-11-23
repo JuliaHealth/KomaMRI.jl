@@ -27,6 +27,7 @@ A sampled version of a Sequence struct, containing event amplitudes at specified
 - `seqd`: (`::DiscreteSequence`) DiscreteSequence struct
 """
 struct DiscreteSequence{
+    T,
     GxType<:AbstractVector,
     GyType<:AbstractVector,
     GzType<:AbstractVector,
@@ -34,7 +35,7 @@ struct DiscreteSequence{
     ΔfType<:AbstractVector,
     ψType<:AbstractVector,
     ADCType<:AbstractVector,
-    ExcitationType<:AbstractVector,
+    ExcitationType<:AbstractVector{Bool},
     tType<:AbstractVector,
     ΔtType<:AbstractVector,
 }
@@ -48,6 +49,11 @@ struct DiscreteSequence{
     excitation_bool::ExcitationType
     t::tType
     Δt::ΔtType
+end
+
+function DiscreteSequence(Gx, Gy, Gz, B1, Δf, ψ, ADC, excitation_bool, t, Δt)
+    columns = (Gx, Gy, Gz, B1, Δf, ψ, ADC, excitation_bool, t, Δt)
+    return DiscreteSequence{eltype(t), typeof.(columns)...}(columns...)
 end
 
 # -- 0.2. Storage helpers ----------------------------------------------------

@@ -1,6 +1,7 @@
 # # Designing an Optimal 90° Excitation Pulse
 
-# Designing a slice-selective RF pulse becomes difficult when include effects in our model that are typically assumed away (nonlinear Bloch dynamics, off-resonance, relaxation).
+# Designing a slice-selective RF pulse becomes difficult when the model includes
+# nonlinear Bloch dynamics, off-resonance, and relaxation.
 #
 # In this tutorial, KomaMRI will be used for RF pulse design, showcasing its
 # differentiable capabilities. We use Enzyme to differentiate a complete

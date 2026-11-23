@@ -5,13 +5,28 @@ using KomaMRIBase: Phantom, DiscreteSequence, ArbitraryCoilSens, get_n_coils
 import KomaMRIBase
 using KomaMRICore
 using ReactantCore: promote_to_traced
-import KomaMRICore: _prepare_sequence,
+import KomaMRICore: _prepare_sequence, _simulation_signal,
     _run_simulation_block!, acquire_signal!, _sample_counter, gpu_grid_interval,
-    gpu_interpolate_cell, gpu_coil_sample, prealloc_sensitivities, CoilSensitivities,
-    adapt_storage
+    gpu_interpolate_cell, gpu_cell_upper_index, gpu_coil_sample, gpu_lerp,
+    prealloc_sensitivities, CoilSensitivities, adapt_storage, store_sample!,
+    spinor_half_angle, spinor_half_angle_series
 
 adapt_storage(T::Type{<:Real}, xs::Reactant.AnyTracedRArray{<:Real}) = T.(xs)
 adapt_storage(T::Type{<:Real}, xs::Reactant.AnyTracedRArray{<:Complex}) = Complex{T}.(xs)
+
+_simulation_signal(density::Reactant.AnyTracedRVector, dims) =
+    fill!(similar(density, ComplexF64, dims), 0)
+
+@inline function spinor_half_angle(θ2::T) where {T<:Reactant.TracedRNumber}
+    small = θ2 <= sqrt(eps(T))
+    c_small, scale_small = spinor_half_angle_series(θ2)
+    θ = sqrt(ifelse(small, one(θ2), θ2))
+    s, c = sincos(θ / T(2))
+    return ifelse(small, c_small, c), ifelse(small, scale_small, s / θ)
+end
+
+gpu_cell_upper_index(i::Reactant.AnyTracedRArray, n) = min.(i .+ 1, n)
+gpu_lerp(a::Reactant.AnyTracedRArray, b, weight) = @. a + (b - a) * weight
 
 function gpu_grid_interval(grid, query::Reactant.AnyTracedRArray)
     n = length(grid)
@@ -52,7 +67,7 @@ function KomaMRIBase.get_sens(receiver::ArbitraryCoilSens,
 end
 
 prealloc_sensitivities(receiver::ArbitraryCoilSens,
-    obj::Phantom{<:Reactant.AnyTracedRVector}) =
+    obj::Phantom{<:Any,<:Reactant.AnyTracedRVector}) =
     CoilSensitivities(KomaMRIBase.get_sens(receiver, obj.x, obj.y, obj.z), nothing)
 
 function KomaMRIBase.get_sens!(sens::Reactant.AnyTracedRMatrix,
@@ -64,14 +79,22 @@ end
 _sample_counter(sig::Reactant.AnyTracedRArray) =
     promote_to_traced(firstindex(sig, 1))
 
-function _prepare_sequence(::Phantom{<:Reactant.AnyTracedRVector}, seqd)
+function store_sample!(acquire!, sig, sample::Reactant.TracedRNumber{<:Integer}, adc)
+    dims = ntuple(_ -> Colon(), ndims(sig) - 1)
+    row = similar(sig, size(sig)[2:end])
+    acquire!(row)
+    sig[sample, dims...] = adc === true ? row : ifelse.(adc, row, sig[sample, dims...])
+    return nothing
+end
+
+function _prepare_sequence(::Phantom{<:Any,<:Reactant.AnyTracedRVector}, seqd)
     traced(x) = Reactant.promote_to(Reactant.TracedRArray, x)
     DiscreteSequence(traced(seqd.Gx), traced(seqd.Gy), traced(seqd.Gz),
         traced(seqd.B1), traced(seqd.Δf), traced(seqd.ψ), seqd.ADC,
         seqd.excitation_bool, traced(seqd.t), traced(seqd.Δt))
 end
 
-function _run_simulation_block!(runner, obj::Phantom{<:Reactant.AnyTracedRVector},
+function _run_simulation_block!(runner, obj::Phantom{<:Any,<:Reactant.AnyTracedRVector},
     seqd, p, sig, samples, Xt, sys, method, groupsize, backend, preallocated;
     Nthreads)
     Nthreads == 1 || error("Compiled simulation requires Nthreads=1")
@@ -105,7 +128,7 @@ end
 
 # One compiled body for all blocks, checkpointed per block for reverse mode
 function KomaMRICore.run_sim_time_iter!(
-    obj::Phantom{<:Reactant.AnyTracedRVector}, seqd, sig::AbstractArray,
+    obj::Phantom{<:Any,<:Reactant.AnyTracedRVector}, seqd, sig::AbstractArray,
     Xt::KomaMRICore.SpinStateRepresentation, sys, sim_method::Bloch,
     backend::KomaMRICore.KA.CPU;
     parts, excitation_bool, max_adc_samples, precession_groupsize,
@@ -134,7 +157,7 @@ function KomaMRICore.run_sim_time_iter!(
     is_excitation = traced(excitation_bool)
     # Static sensitivities are preallocated: keep the receiver maps out of the loop
     loop_sys = obj.motion isa KomaMRIBase.NoMotion ? KomaMRIBase.Scanner() : sys
-    signal = sig[:, :, 1]
+    signal = isempty(sig) ? similar(sig, size(sig, 1), size(sig, 2)) : sig[:, :, 1]
     @trace checkpointing=true track_numbers=false for b in eachindex(parts)
         block = DiscreteSequence(Gx[:, b], Gy[:, b], Gz[:, b], B1[:, b], Δf[:, b],
             ψ[:, b], ADC[:, b], Bool[], t[:, b], Δt[:, b])

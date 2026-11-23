@@ -6,24 +6,25 @@ struct BlochSimple <: SimulationMethod end
 
 export BlochSimple
 
-struct BlochSimplePrealloc{R} <: PreallocResult
+struct BlochSimplePrealloc{T,R} <: PreallocResult{T}
     spin_reset::R
 end
 
-Base.view(prealloc::BlochSimplePrealloc, i::UnitRange) =
-    BlochSimplePrealloc(view(prealloc.spin_reset, i))
+BlochSimplePrealloc(::Type{T}, spin_reset) where {T} =
+    BlochSimplePrealloc{T,typeof(spin_reset)}(spin_reset)
+
+Base.view(prealloc::BlochSimplePrealloc{T}, i::UnitRange) where {T} =
+    BlochSimplePrealloc(T, view(prealloc.spin_reset, i))
 
 function prealloc(
     ::BlochSimple, backend::KA.Backend, obj, _M,
     max_block_length, _max_adc_samples, _groupsize, _sys,
 )
     return BlochSimplePrealloc(
+        eltype(obj.x),
         prealloc_spin_reset(obj.motion, backend, length(obj), max_block_length),
     )
 end
-
-@inline acquire_signal!(sig, sample, M, ::SimulationMethod, receiver, coords) =
-    acquire_signal!(sig, sample, M.xy, receiver, coords)
 
 function acquire_block_signal!(sig, Mxy, receiver, ::NoMotion, positions, _adc)
     acquire_signal!(sig, Mxy, receiver, positions)
@@ -174,7 +175,9 @@ function run_spin_excitation!(
         )
         #Acquire signal
         if s.ADC # ADC at the end of the time step
-            acquire_signal!(sig, sample, M, sim_method, sys.receiver, (x, y, z))
+            acquire_signal!(
+                @view(sig[sample, :]), M.xy, sys.receiver, (x, y, z),
+            )
             sample += 1
         end
     end
