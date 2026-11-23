@@ -17,6 +17,8 @@ is_GR_on(x::Grad) = is_on(x)
 is_RF_on(x::RF) = is_on(x)
 is_ADC_on(x::ADC) = is_on(x)
 
+_has_waveform(rf::RF) = is_on(rf)
+
 # -- 1.2. Event amplitudes and RF frequency offsets --------------------------
 """
     A = ampls(g::Grad)
@@ -47,10 +49,13 @@ function ampls(rf::BlockPulseRF; freq_in_phase=false)
 end
 
 function ampls(rf::RF; freq_in_phase=false)
-    A = collect(cis(rf.ϕ) .* rf.A)
-    is_on(rf) || return similar(A, 0)
-    length(A) == 1 && (A = [only(A), only(A)])
-    A = [zero(eltype(A)); A; zero(eltype(A))]
+    A = cis(rf.ϕ) .* rf.A
+    _has_waveform(rf) || return similar(A, 0)
+    length(A) == 1 && (A = A[[1, 1]])
+    out = similar(A, length(A) + 2)
+    fill!(out, zero(eltype(A)))
+    out[2:(end - 1)] .= A
+    A = out
     if freq_in_phase
         t  = times(rf)
         Δf = (t=times(rf, :Δf)[2:(end - 1)], A=freqs(rf)[2:(end - 1)])
@@ -65,7 +70,7 @@ end
 Get frequency samples of MRI RF event.
 """
 function freqs(rf::RF)
-    is_on(rf) || return typeof(rf.Δf)[]
+    _has_waveform(rf) || return typeof(rf.Δf)[]
     Δf = fill(rf.Δf, length(freq_times(rf)))
     Δf[begin] = zero(rf.Δf)
     Δf[end] = zero(rf.Δf)
@@ -73,7 +78,7 @@ function freqs(rf::RF)
 end
 
 function freqs(rf::FrequencyModulatedRF)
-    is_on(rf) || return eltype(rf.Δf)[]
+    _has_waveform(rf) || return eltype(rf.Δf)[]
     Δf = collect(rf.Δf)
     length(Δf) == 1 && (Δf = [only(Δf), only(Δf)])
     return [zero(eltype(Δf)); Δf; zero(eltype(Δf))]
@@ -113,13 +118,13 @@ function times(rf::BlockPulseRF)
 end
 
 function times(rf::UniformlySampledRF)
-    is_on(rf) || return typeof(rf.delay)[]
+    _has_waveform(rf) || return typeof(rf.delay)[]
     t = length(rf.A) == 1 ? [rf.delay, dur(rf)] : collect(range(rf.delay, dur(rf); length=length(rf.A)))
     return [first(t); t; last(t)]
 end
 
 function times(rf::TimeShapedRF)
-    is_on(rf) || return typeof(rf.delay)[]
+    _has_waveform(rf) || return typeof(rf.delay)[]
     t = rf.delay .+ cumsum(rf.T)
     t = length(rf.T) == length(rf.A) - 1 ? [rf.delay; t] : t
     return [first(t); t; last(t)]
@@ -131,18 +136,18 @@ end
 Get RF frequency modulation time samples.
 """
 function freq_times(rf::RF)
-    is_on(rf) || return typeof(rf.delay)[]
+    _has_waveform(rf) || return typeof(rf.delay)[]
     return [rf.delay, rf.delay, dur(rf), dur(rf)]
 end
 
 function freq_times(rf::UniformlySampledFrequencyModulatedRF)
-    is_on(rf) || return typeof(rf.delay)[]
+    _has_waveform(rf) || return typeof(rf.delay)[]
     t = length(rf.Δf) == 1 ? [rf.delay, dur(rf)] : collect(range(rf.delay, dur(rf); length=length(rf.Δf)))
     return [first(t); t; last(t)]
 end
 
 function freq_times(rf::TimeShapedFrequencyModulatedRF)
-    is_on(rf) || return typeof(rf.delay)[]
+    _has_waveform(rf) || return typeof(rf.delay)[]
     t = rf.delay .+ cumsum(rf.T)
     t = length(rf.T) == length(rf.Δf) - 1 ? [rf.delay; t] : t
     return [first(t); t; last(t)]

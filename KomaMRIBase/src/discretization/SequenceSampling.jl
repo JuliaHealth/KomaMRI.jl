@@ -29,9 +29,12 @@ function append_adc_start_padding!(out, values, first_t)
     return out
 end
 
-function same_boundary_sample(out, values)
+function same_boundary_sample(out, values, _B1=out.B1)
     return all(last(dst) == first(src) for (dst, src) in zip(table_columns(out), table_columns(values)))
 end
+
+sampled_sequence_storage(out, _B1, _samples) = out
+append_waveform_samples!(dst, src, rows) = append!(dst, view(src, rows))
 
 function append_sampled_block!(out, values, t0)
     isempty(values.t) && return out
@@ -50,7 +53,7 @@ function append_sampled_block!(out, values, t0)
     for t in view(values.t, rows)
         push!(out.t, t == first(values.t) ? first_t : t0 + t)
     end
-    foreach((dst, src) -> append!(dst, view(src, rows)), table_columns(out), table_columns(values))
+    foreach((dst, src) -> append_waveform_samples!(dst, src, rows), table_columns(out), table_columns(values))
     append!(out.Δt, values.Δt)
     append!(out.excitation_bool, values.excitation_bool)
     return out
@@ -65,6 +68,7 @@ function sample_sequence(seq; motion=NoMotion(), sampling_rule=MaxStepSizeRule(1
     global_event_times = merge_sampling_times(sequence_boundary_sampling_times(seq), motion_sampling_times(seq, motion))
     for block in 1:length(seq)
         values = sample_sequence_block(seq, block; sampling_rule, motion_times=block_global_event_times(T0, block, global_event_times), freq_in_phase)
+        out = sampled_sequence_storage(out, out.B1, values.B1)
         append_sampled_block!(out, values, T0[block])
     end
     return out
