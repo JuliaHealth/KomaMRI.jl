@@ -29,6 +29,13 @@ function append_adc_start_padding!(out, values, first_t)
     return out
 end
 
+function same_boundary_sample(out, values, _B1=out.B1)
+    return all(last(dst) == first(src) for (dst, src) in zip(table_columns(out), table_columns(values)))
+end
+
+sampled_sequence_storage(out, _B1, _samples) = out
+append_waveform_samples!(dst, src, rows) = append!(dst, view(src, rows))
+
 function append_sampled_block!(out, values, t0)
     isempty(values.t) && return out
     first_t = t0 + first(values.t)
@@ -36,11 +43,7 @@ function append_sampled_block!(out, values, t0)
         first_t = last(out.t)
     end
     first_row = firstindex(values.t)
-    if isempty(out.t)
-        append_adc_start_padding!(out, values, first_t)
-    elseif all(dst -> dst isa Vector, table_columns(out)) &&
-           first_t == last(out.t) &&
-           all(last(dst) == first(src) for (dst, src) in zip(table_columns(out), table_columns(values)))
+    isempty(out.t) ? append_adc_start_padding!(out, values, first_t) : if first_t == last(out.t) && same_boundary_sample(out, values)
         first_row += 1
     else
         push!(out.Δt, first_t - last(out.t))
@@ -50,7 +53,7 @@ function append_sampled_block!(out, values, t0)
     for t in view(values.t, rows)
         push!(out.t, t == first(values.t) ? first_t : t0 + t)
     end
-    foreach((dst, src) -> append!(dst, dst isa Vector ? view(src, rows) : src[rows]), table_columns(out), table_columns(values))
+    foreach((dst, src) -> append_waveform_samples!(dst, src, rows), table_columns(out), table_columns(values))
     append!(out.Δt, values.Δt)
     append!(out.excitation_bool, values.excitation_bool)
     return out
@@ -58,17 +61,14 @@ end
 
 # -- 6.3. Sample the full sequence ------------------------------------------
 function sample_sequence(seq; motion=NoMotion(), sampling_rule=MaxStepSizeRule(1e-3, 5e-5), freq_in_phase=false)
-    length(seq) == 0 && return DiscreteSequence()
+    out = DiscreteSequence()
+    sizehint = max(8length(seq), 5sum(seq.ADC.N))
+    foreach(x -> Base.sizehint!(x, sizehint), (out.t, table_columns(out)..., out.excitation_bool, out.Δt))
     T0 = get_block_start_times(seq)
     global_event_times = merge_sampling_times(sequence_boundary_sampling_times(seq), motion_sampling_times(seq, motion))
-    values = sample_sequence_block(seq, 1; sampling_rule, motion_times=block_global_event_times(T0, 1, global_event_times), freq_in_phase)
-    columns = (table_columns(values)..., values.excitation_bool, values.t, values.Δt)
-    out = DiscreteSequence(map(x -> similar(x, 0), columns)...)
-    sizehint = max(8length(seq), 5sum(seq.ADC.N))
-    foreach(x -> x isa Vector && Base.sizehint!(x, sizehint), (out.t, table_columns(out)..., out.excitation_bool, out.Δt))
-    append_sampled_block!(out, values, T0[1])
-    for block in 2:length(seq)
+    for block in 1:length(seq)
         values = sample_sequence_block(seq, block; sampling_rule, motion_times=block_global_event_times(T0, block, global_event_times), freq_in_phase)
+        out = sampled_sequence_storage(out, out.B1, values.B1)
         append_sampled_block!(out, values, T0[block])
     end
     return out

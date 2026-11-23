@@ -17,7 +17,7 @@ is_GR_on(x::Grad) = is_on(x)
 is_RF_on(x::RF) = is_on(x)
 is_ADC_on(x::ADC) = is_on(x)
 
-_has_waveform(x) = is_on(x)
+_has_waveform(rf::RF) = is_on(rf)
 
 # -- 1.2. Event amplitudes and RF frequency offsets --------------------------
 """

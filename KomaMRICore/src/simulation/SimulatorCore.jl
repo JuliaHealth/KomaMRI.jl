@@ -1,5 +1,5 @@
 abstract type SimulationMethod end #get all available types by using subtypes(KomaMRI.SimulationMethod)
-abstract type SpinStateRepresentation end #get all available types by using subtypes(KomaMRI.SpinStateRepresentation)
+abstract type SpinStateRepresentation{T<:Number} end #get all available types by using subtypes(KomaMRI.SpinStateRepresentation)
 
 #Defined methods:
 include("SimMethods/SimulationMethod.jl")  #Defines simulation methods
