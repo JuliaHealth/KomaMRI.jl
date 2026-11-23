@@ -34,7 +34,7 @@ struct DiscreteSequence{
     B1Type<:AbstractVector,
     ΔfType<:AbstractVector,
     ψType<:AbstractVector,
-    ADCType<:AbstractVector{Bool},
+    ADCType<:AbstractVector,
     ExcitationType<:AbstractVector{Bool},
     tType<:AbstractVector,
     ΔtType<:AbstractVector,

@@ -26,12 +26,15 @@ Base.getindex(M::Mag, i::Integer) = Mag(M.xy[i,:], M.z[i,:])
 Base.getindex(M::Mag, i) = Mag(M.xy[i], M.z[i])
 Base.view(M::Mag, i) = @views Mag(M.xy[i], M.z[i])
 
+@inline function spinor_half_angle_series(θ2)
+    T = typeof(θ2)
+    θ4 = θ2 * θ2
+    return T(1) - θ2 / T(8) + θ4 / T(384),
+           T(0.5) - θ2 / T(48) + θ4 / T(3840)
+end
+
 @inline function spinor_half_angle(θ2::T) where {T<:Real}
-    if θ2 <= sqrt(eps(T))
-        θ4 = θ2 * θ2
-        return T(1) - θ2 / T(8) + θ4 / T(384),
-               T(0.5) - θ2 / T(48) + θ4 / T(3840)
-    end
+    θ2 <= sqrt(eps(T)) && return spinor_half_angle_series(θ2)
     θ = sqrt(θ2)
     s, c = sincos(θ / T(2))
     return c, s / θ
