@@ -1,6 +1,7 @@
 """Stores preallocated structs for use in Bloch CPU run_spin_precession! and run_spin_excitation! functions."""
 struct BlochCPUPrealloc{
-    MType<:Mag,
+    T,
+    MType<:Mag{T},
     BzOldType<:AbstractVector,
     BzNewType<:AbstractVector,
     PhiType<:AbstractVector,
@@ -9,7 +10,7 @@ struct BlochCPUPrealloc{
     S,
     P,
     R,
-} <: PreallocResult
+} <: PreallocResult{T}
     M::MType
     Bz_old::BzOldType
     Bz_new::BzNewType
