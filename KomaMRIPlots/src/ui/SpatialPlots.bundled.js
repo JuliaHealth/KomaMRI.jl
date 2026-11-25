@@ -87,6 +87,13 @@ function reconcilePlot(graph, data, layout, previous) {
     layout.uirevision = `${layout.uirevision ?? 'koma'}-${definition.revision}`;
     return definition;
 }
+function sliderTranslation(node) {
+    const parts = (node.getAttribute('transform') ?? '').replace(/.*\btranslate\((-?\d*\.?\d*)[^-\d]*(-?\d*\.?\d*)[^\d].*/, (_, x, y)=>`${x} ${y}`).split(' ');
+    return {
+        x: +parts[0] || 0,
+        y: +parts[1] || 0
+    };
+}
 function styleTimeTicks(graph) {
     graph.querySelectorAll('.slider-group').forEach((group)=>{
         const slider = group.__data__;
@@ -103,8 +110,8 @@ function styleTimeTicks(graph) {
         labels.forEach((label, i)=>{
             const index = Math.round(i * (ticks.length - 1) / (labels.length - 1));
             const tick = ticks[index], value = slider._visibleSteps[index].label;
-            const x = tick.transform.baseVal.consolidate().matrix.e + slider.tickwidth / 2;
-            const y = label.transform.baseVal.consolidate().matrix.f;
+            const x = sliderTranslation(tick).x + slider.tickwidth / 2;
+            const y = sliderTranslation(label).y;
             label.setAttribute('transform', `translate(${x},${y})`);
             const text = label.querySelector('.slider-label');
             text.textContent = value;
@@ -1573,3 +1580,4 @@ export { projection as projection };
 export { playbackFrame as playbackFrame };
 export { mountKspace as mountKspace };
 export { mount as mount };
+
