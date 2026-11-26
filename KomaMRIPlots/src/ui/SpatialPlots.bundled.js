@@ -87,6 +87,15 @@ function reconcilePlot(graph, data, layout, previous) {
     layout.uirevision = `${layout.uirevision ?? 'koma'}-${definition.revision}`;
     return definition;
 }
+function sliderTranslation(node) {
+    const matrix = new DOMMatrix();
+    const list = node.transform.baseVal;
+    for(let i = 0; i < list.numberOfItems; i++)matrix.multiplySelf(list.getItem(i).matrix);
+    return {
+        x: matrix.e,
+        y: matrix.f
+    };
+}
 function styleTimeTicks(graph) {
     graph.querySelectorAll('.slider-group').forEach((group)=>{
         const slider = group.__data__;
@@ -103,8 +112,8 @@ function styleTimeTicks(graph) {
         labels.forEach((label, i)=>{
             const index = Math.round(i * (ticks.length - 1) / (labels.length - 1));
             const tick = ticks[index], value = slider._visibleSteps[index].label;
-            const x = tick.transform.baseVal.consolidate().matrix.e + slider.tickwidth / 2;
-            const y = label.transform.baseVal.consolidate().matrix.f;
+            const x = sliderTranslation(tick).x + slider.tickwidth / 2;
+            const y = sliderTranslation(label).y;
             label.setAttribute('transform', `translate(${x},${y})`);
             const text = label.querySelector('.slider-label');
             text.textContent = value;
@@ -1573,3 +1582,4 @@ export { projection as projection };
 export { playbackFrame as playbackFrame };
 export { mountKspace as mountKspace };
 export { mount as mount };
+
