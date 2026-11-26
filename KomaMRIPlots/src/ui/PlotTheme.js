@@ -92,10 +92,10 @@ export async function renderPlot(graph, Plotly, plot, previous) {
 // consolidate() turns that into a matrix, which Firefox writes back, so the next
 // slider draw appends a second translate and the marks walk off the rail.
 function sliderTranslation(node) {
-    const parts = (node.getAttribute('transform') ?? '')
-        .replace(/.*\btranslate\((-?\d*\.?\d*)[^-\d]*(-?\d*\.?\d*)[^\d].*/, (_, x, y) => `${x} ${y}`)
-        .split(' ');
-    return {x: +parts[0] || 0, y: +parts[1] || 0};
+    const matrix = new DOMMatrix();
+    const list = node.transform.baseVal;
+    for (let i = 0; i < list.numberOfItems; i++) matrix.multiplySelf(list.getItem(i).matrix);
+    return {x: matrix.e, y: matrix.f};
 }
 
 function styleTimeTicks(graph) {

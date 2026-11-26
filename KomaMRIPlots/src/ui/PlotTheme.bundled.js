@@ -128,10 +128,12 @@ async function renderPlot(graph, Plotly, plot, previous) {
     return definition;
 }
 function sliderTranslation(node) {
-    const parts = (node.getAttribute('transform') ?? '').replace(/.*\btranslate\((-?\d*\.?\d*)[^-\d]*(-?\d*\.?\d*)[^\d].*/, (_, x, y)=>`${x} ${y}`).split(' ');
+    const matrix = new DOMMatrix();
+    const list = node.transform.baseVal;
+    for(let i = 0; i < list.numberOfItems; i++)matrix.multiplySelf(list.getItem(i).matrix);
     return {
-        x: +parts[0] || 0,
-        y: +parts[1] || 0
+        x: matrix.e,
+        y: matrix.f
     };
 }
 function styleTimeTicks(graph) {
