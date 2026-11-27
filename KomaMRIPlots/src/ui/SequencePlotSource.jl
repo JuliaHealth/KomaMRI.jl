@@ -56,13 +56,14 @@ function sequence_source(seq; physio=NoPhysioSignal(), width=nothing, height=not
     slider=false, darkmode=false, range=[], title="")
     seq = resolve_triggers(seq, physio)
     starts = get_block_start_times(seq)
-    labels = get_labels(seq)
+    context = adc_label_context(seq)
+    labels = context.labels
     real_rf = all(seq.RF) do rf
         samples = KomaMRIBase.event_samples(rf)
         all(amplitude -> isapprox(imag(amplitude), 0; atol=eps()), samples.A)
     end
     adc_blocks = findall(is_ADC_on, seq.ADC)
-    label_names = [name for name in fieldnames(AdcLabels)
+    label_names = [name for name in propertynames(first(labels))
         if any(b -> !iszero(getproperty(labels[b], name)), adc_blocks)]
     channels = [WAVEFORM_CHANNELS...]
     template = plot_seq_nonadaptive(seq[1:1]; slider=false, show_adc=false, darkmode)

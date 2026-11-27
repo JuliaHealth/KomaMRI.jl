@@ -23,7 +23,7 @@ function sequence_reconstruction_warning(seq)
     context = adc_label_context(seq)
     labels = context.encoding_label_names
     warnings = String[]
-    negative = [name for name in fieldnames(AdcLabels)
+    negative = [name for name in propertynames(first(context.labels))
         if any(label -> getproperty(label, name) < 0, context.labels)]
     isempty(negative) || push!(warnings,
         "Negative ADC labels: $(join(negative, ", ")). Use nonnegative values for scanner acquisition and MRD export.")

@@ -18,14 +18,16 @@ function export_2_mat_sequence(seq, matfolder; matfilename="seq_sequence.mat")
         "RF_FM" => RF_FM,
         "ADCS" => ADCS
     )
-    (; labels, adc_blocks) = adc_label_context(seq)
+    (; labels, adc_blocks, label_names) = adc_label_context(seq)
+    custom_label_names = sort!(collect(filter(name -> !(name in KomaMRIBase.ADC_LABEL_NAMES), label_names)))
+    label_names = (KomaMRIBase.ADC_LABEL_NAMES..., custom_label_names...)
     seq_dict["definitions"] = _mat_value(seq.DEF)
     seq_dict["adc"] = Dict(
         "block" => adc_blocks,
         "num_samples" => [seq.ADC[b].N for b in adc_blocks],
         "labels" => Dict(
             string(name) => [getproperty(labels[b], name) for b in adc_blocks]
-            for name in fieldnames(KomaMRIBase.AdcLabels)
+            for name in label_names
         ),
     )
 

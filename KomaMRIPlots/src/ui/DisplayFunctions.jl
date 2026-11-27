@@ -359,8 +359,8 @@ function plot_seq_nonadaptive(
     label = get_labels(seq)
     isadc = is_ADC_on.(seq)
     label_symbols = [
-        sym for sym in fieldnames(AdcLabels)
-        if any(j -> isadc[j] && !iszero(getfield(label[j], sym)), eachindex(label))
+        sym for sym in propertynames(first(label))
+        if any(j -> isadc[j] && !iszero(getproperty(label[j], sym)), eachindex(label))
     ]
 
     # Define general params and the vector of plots
@@ -515,7 +515,7 @@ function plot_seq_nonadaptive(
     t_center_adc = t_center[isadc]
 
     for (i, sym) in enumerate(label_symbols)
-        lab_vec = [getfield(label[j],sym) for j in eachindex(label)]
+        lab_vec = [getproperty(label[j],sym) for j in eachindex(label)]
         lab_adc = lab_vec[isadc]
 
         p[adc_idx + i] = scatter_fun(;

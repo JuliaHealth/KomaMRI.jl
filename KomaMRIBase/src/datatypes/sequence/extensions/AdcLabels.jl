@@ -1,3 +1,5 @@
+struct _SharedCustomLabels end
+
 struct AdcLabels
     # Counters
     LIN::Int   # Copied to Siemens MDH
@@ -27,6 +29,7 @@ struct AdcLabels
     NOPOS::Int  # Ignore UI FOV position
     NOSCL::Int  # Ignore UI FOV scaling
     ONCE::Int   # 0: every repeat, 1: first repeat, 2: last repeat
+    _custom_labels::Dict{Symbol,Int}
 
     AdcLabels(
         LIN::Int=0,
@@ -51,23 +54,59 @@ struct AdcLabels
         NOROT::Int=0,
         NOPOS::Int=0,
         NOSCL::Int=0,
-        ONCE::Int=0) = new(LIN, PAR, SLC, SEG, REP, AVG, SET, ECO, PHS, ACQ, TRID, NAV, REV, SMS, REF, IMA, OFF, NOISE, PMC, NOROT, NOPOS, NOSCL, ONCE)
+        ONCE::Int=0;
+        custom_labels::Dict{Symbol,Int}=Dict{Symbol,Int}()) =
+        new(LIN, PAR, SLC, SEG, REP, AVG, SET, ECO, PHS, ACQ, TRID, NAV, REV, SMS, REF, IMA, OFF, NOISE, PMC, NOROT, NOPOS, NOSCL, ONCE, copy(custom_labels))
+
+    # Internal: shares `custom_labels` without copying; callers must never mutate it afterwards.
+    AdcLabels(values::NTuple{23,Int}, custom_labels::Dict{Symbol,Int}, ::_SharedCustomLabels) =
+        new(values..., custom_labels)
 end
 
-const ADC_LABEL_NAMES = fieldnames(AdcLabels)
+const ADC_LABEL_NAMES = (
+    :LIN, :PAR, :SLC, :SEG, :REP, :AVG, :SET, :ECO, :PHS, :ACQ, :TRID,
+    :NAV, :REV, :SMS, :REF, :IMA, :OFF, :NOISE, :PMC, :NOROT, :NOPOS, :NOSCL, :ONCE,
+)
+
+function Base.getproperty(label::AdcLabels, name::Symbol)
+    name in ADC_LABEL_NAMES && return getfield(label, name)
+    custom_labels = getfield(label, :_custom_labels)
+    haskey(custom_labels, name) && return custom_labels[name]
+    return getfield(label, name)
+end
+
+function Base.propertynames(label::AdcLabels, private::Bool=false)
+    custom_names = keys(getfield(label, :_custom_labels))
+    return private ? (ADC_LABEL_NAMES..., custom_names..., :_custom_labels) :
+        (ADC_LABEL_NAMES..., custom_names...)
+end
+
+Base.:(==)(a::AdcLabels, b::AdcLabels) =
+    all(name -> getfield(a, name) == getfield(b, name), ADC_LABEL_NAMES) &&
+    getfield(a, :_custom_labels) == getfield(b, :_custom_labels)
+
+Base.isequal(a::AdcLabels, b::AdcLabels) =
+    all(name -> isequal(getfield(a, name), getfield(b, name)), ADC_LABEL_NAMES) &&
+    isequal(getfield(a, :_custom_labels), getfield(b, :_custom_labels))
+
+Base.hash(label::AdcLabels, h::UInt) =
+    hash((map(name -> getfield(label, name), ADC_LABEL_NAMES), getfield(label, :_custom_labels)), h)
 
 function _adc_label_with(label::AdcLabels, field::Symbol, value::Integer)
     idx = findfirst(==(field), ADC_LABEL_NAMES)
-    isnothing(idx) && error("Unsupported ADC label `$field`.")
     values = ntuple(i -> i == idx ? Int(value) : getfield(label, i), Val(length(ADC_LABEL_NAMES)))
-    return AdcLabels(values...)
+    custom_labels = getfield(label, :_custom_labels)
+    if isnothing(idx)
+        custom_labels = merge(custom_labels, Dict(field => Int(value)))
+    end
+    return AdcLabels(values, custom_labels, _SharedCustomLabels())
 end
   
 import Base.show
 function Base.show(io::IO, label::AdcLabels)
     label_string = "AdcLabels[ "
-    for field in fieldnames(AdcLabels)
-        label_string = label_string * string(field)*" = "* string(getfield(label, field))*" | "
+    for field in propertynames(label)
+        label_string = label_string * string(field)*" = "* string(getproperty(label, field))*" | "
     end
     print(io, label_string[1:end-2] * "]")
 end
