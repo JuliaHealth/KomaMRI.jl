@@ -32,7 +32,7 @@ end
 
 function get_sens(receiver::BirdcageCoilSens, x, y, z)
     T = eltype(x)
-    sens = similar(x, Complex{T}, length(x), get_n_coils(receiver))
+    sens = similar(x, complex(T), length(x), get_n_coils(receiver))
     return get_sens!(sens, receiver, x, y, z)
 end
 

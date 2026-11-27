@@ -65,6 +65,31 @@ function acquire_signal!(sig, Mxy::AbstractVector, ::UniformCoilSens, _)
     return nothing
 end
 
+@inline _sample_counter(sig) = firstindex(sig, 1)
+
+# Acquire into the selected signal row when the ADC is on.
+@inline function store_sample!(acquire!, sig, sample::Integer, adc::Bool)
+    adc && acquire!(@view(sig[sample, ntuple(_ -> Colon(), ndims(sig) - 1)...]))
+    return nothing
+end
+
+@inline acquire_signal!(sig, sample, adc, M, sys, prealloc, p, seq, i) =
+    store_sample!(sig, sample, adc) do row
+        coords = spin_coordinates!(
+            prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i + 1],
+        )
+        update_sensitivities!(prealloc.sens, sys.receiver, coords, p.motion)
+        acquire_signal!(row, M.xy, prealloc.sens, coords)
+    end
+
+@inline acquire_signal!(sig, sample, adc, M, sys, prealloc, p, seq, i, block_time, coords) =
+    store_sample!(sig, sample, adc) do row
+        @. prealloc.M.xy = exp(-block_time / p.T2) * M.xy * cis(prealloc.ϕ)
+        outflow_spin_reset!(prealloc.M.xy, spin_reset_state(prealloc))
+        update_sensitivities!(prealloc.sens, sys.receiver, coords, p.motion)
+        acquire_signal!(row, prealloc.M.xy, prealloc.sens, coords)
+    end
+
 function acquire_signal!(sig, Mxy::AbstractMatrix, ::UniformCoilSens, _)
     sig .= vec(sum(Mxy; dims=1))
     return nothing
