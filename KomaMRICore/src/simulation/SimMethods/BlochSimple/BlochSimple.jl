@@ -103,11 +103,13 @@ function run_spin_precession!(
         M, spin_reset, lastindex(seq.t), seq.t, p.motion; replace_by=p.ρ,
     )
     #Acquired signal
-    adc = findall(cpu(seq.ADC[2:end]))
-    Mxy_adc = Mxy[:, adc]
-    acquire_block_signal!(
-        sig, Mxy_adc, sys.receiver, p.motion, (x, y, z), adc,
-    )
+    if !isempty(sig)
+        adc = findall(cpu(seq.ADC[2:end]))
+        Mxy_adc = Mxy[:, adc]
+        acquire_block_signal!(
+            sig, Mxy_adc, sys.receiver, p.motion, (x, y, z), adc,
+        )
+    end
     return nothing
 end
 
