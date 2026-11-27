@@ -1,5 +1,5 @@
 struct BlochMagnusConstCPUPrealloc{
-    T,CV<:AbstractVector{Complex{T}},RV<:AbstractVector{T},S,P,R
+    T,CV<:AbstractVector,RV<:AbstractVector{T},S,P,R
 } <: BlochMagnusCPUPrealloc{T}
     ωxy_0::CV
     ωz_0::RV

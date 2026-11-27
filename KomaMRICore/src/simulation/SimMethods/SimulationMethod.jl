@@ -24,18 +24,15 @@ function split_sig_per_thread(sig, i, p, sim_method::SimulationMethod)
 end
 
 """Magnetization initialization for Bloch simulation method."""
-function initialize_spins_state(
-    obj::Phantom{T}, sim_method::SimulationMethod
-) where {T<:Real}
-    Nspins = length(obj)
-    Mxy = zeros(Complex{T}, Nspins)
+function initialize_spins_state(obj::Phantom, sim_method::SimulationMethod)
+    Mxy = complex.(zero.(obj.ρ))
     Mz = copy(obj.ρ)
-    Xt = Mag{T}(Mxy, Mz)
+    Xt = Mag(Mxy, Mz)
     return Xt, obj
 end
 
 """Stores pre-allocated arrays for use in run_spin_precession! and run_spin_excitation!"""
-abstract type PreallocResult{T<:Real} end
+abstract type PreallocResult{T<:Number} end
 
 """Default preallocation struct, stores nothing."""
 struct DefaultPrealloc{T} <: PreallocResult{T} end

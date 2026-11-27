@@ -29,29 +29,75 @@ julia> obj = Phantom(x=[0.0])
 julia> obj.ρ
 ```
 """
-@with_kw mutable struct Phantom{T<:Real}
-    name::String           = "spins"
-    x::AbstractVector{T}   = @isdefined(T) ? T[] : Float64[]
-    y::AbstractVector{T}   = zeros(eltype(x), size(x))
-    z::AbstractVector{T}   = zeros(eltype(x), size(x))
-    ρ::AbstractVector{T}   = ones(eltype(x), size(x))
-    T1::AbstractVector{T}  = ones(eltype(x), size(x)) * 1_000_000
-    T2::AbstractVector{T}  = ones(eltype(x), size(x)) * 1_000_000
-    T2s::AbstractVector{T} = ones(eltype(x), size(x)) * 1_000_000
+@with_kw mutable struct Phantom{
+    T,
+    XV<:AbstractVector,
+    YV<:AbstractVector,
+    ZV<:AbstractVector,
+    ρV<:AbstractVector,
+    T1V<:AbstractVector,
+    T2V<:AbstractVector,
+    T2sV<:AbstractVector,
+    ΔwV<:AbstractVector,
+    Dλ1V<:AbstractVector,
+    Dλ2V<:AbstractVector,
+    DθV<:AbstractVector,
+    M<:Union{NoMotion, Motion, MotionList},
+}
+    name::String          = "spins"
+    x::XV                  = Float64[]
+    y::YV                  = zeros(eltype(x), size(x))
+    z::ZV                  = zeros(eltype(x), size(x))
+    ρ::ρV                  = ones(eltype(x), size(x))
+    T1::T1V                = ones(eltype(x), size(x)) * 1_000_000
+    T2::T2V                = ones(eltype(x), size(x)) * 1_000_000
+    T2s::T2sV              = ones(eltype(x), size(x)) * 1_000_000
     #Off-resonance related
-    Δw::AbstractVector{T} = zeros(eltype(x), size(x))
+    Δw::ΔwV                = zeros(eltype(x), size(x))
     #χ::Vector{SusceptibilityModel}
     #Diffusion
-    Dλ1::AbstractVector{T} = zeros(eltype(x), size(x))
-    Dλ2::AbstractVector{T} = zeros(eltype(x), size(x))
-    Dθ::AbstractVector{T}  = zeros(eltype(x), size(x))
+    Dλ1::Dλ1V              = zeros(eltype(x), size(x))
+    Dλ2::Dλ2V              = zeros(eltype(x), size(x))
+    Dθ::DθV                = zeros(eltype(x), size(x))
     #Diff::Vector{DiffusionModel}  #Diffusion map
     #Motion
-    motion::Union{NoMotion, Motion{T}, MotionList{T}} = NoMotion()
+    motion::M              = NoMotion()
 end
 
 const NON_STRING_PHANTOM_FIELDS = Iterators.filter(x -> fieldtype(Phantom, x) != String,         fieldnames(Phantom))
 const VECTOR_PHANTOM_FIELDS     = Iterators.filter(x -> fieldtype(Phantom, x) <: AbstractVector, fieldnames(Phantom))
+
+function Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion)
+    return phantom_from_vectors(name, (x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ), motion)
+end
+
+function phantom_from_vectors(
+    name, vectors::Tuple{Vararg{AbstractVector{T}}},
+    motion::Union{NoMotion,Motion{T},MotionList{T}},
+) where {T<:Real}
+    storage = map(_ -> AbstractVector{T}, vectors)
+    return Phantom{T, storage..., Union{NoMotion,Motion{T},MotionList{T}}}(
+        name, vectors..., motion,
+    )
+end
+
+function phantom_with_concrete_vectors(name, vectors, motion)
+    return Phantom{eltype(first(vectors)), typeof.(vectors)..., typeof(motion)}(
+        name, vectors..., motion,
+    )
+end
+
+function Phantom{T}(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion) where {T<:Real}
+    vectors = map(v -> convert(AbstractVector{T}, v), (x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ))
+    return Phantom(name, vectors..., convert(Union{NoMotion, Motion{T}, MotionList{T}}, motion))
+end
+
+function Phantom{T}(; x=T[], motion=NoMotion(), kwargs...) where {T<:Real}
+    fields = (field => (field in VECTOR_PHANTOM_FIELDS ? convert(AbstractVector{T}, value) : value)
+              for (field, value) in kwargs)
+    return Phantom(; x=convert(AbstractVector{T}, x),
+        motion=convert(Union{NoMotion, Motion{T}, MotionList{T}}, motion), fields...)
+end
 
 """Size and length of a phantom"""
 size(x::Phantom) = size(x.ρ)
